@@ -55,7 +55,38 @@ class DashboardOverview(ApiModel):
 
 class WorkspaceSummary(ApiModel):
     id: str
+    organization_id: str
     slug: str
     name: str
     default_locale: str
     timezone: str
+    currency: str
+
+
+class WorkspaceAccessSummary(ApiModel):
+    workspace: WorkspaceSummary
+    subject_id: str
+    session_id: str
+    roles: list[str]
+    permissions: list[str]
+
+
+class AuditEventSummary(ApiModel):
+    id: str
+    workspace_id: str
+    actor_type: str
+    actor_id: str
+    session_id: str
+    action: str
+    resource_type: str
+    resource_id: str
+    outcome: str
+    request_id: str
+    evidence: dict
+
+
+class RecoveryPlan(ApiModel):
+    workspace_id: str
+    status: Literal["ready", "blocked"]
+    required_permission: str
+    safeguards: list[str]

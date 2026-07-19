@@ -129,15 +129,15 @@ The first reference integration bundle is fixed: Grovello-owned pages and event 
 | POS-007 | Default autonomy uses the R0–R4 risk tiers defined in the system blueprint |
 | POS-008 | The first provider-neutral reference integration bundle is fixed in the system blueprint |
 | POS-009 | The canonical product brand and code namespace are Grovello and `grovello` |
+| POS-010 | Grovello is distributed under `AGPL-3.0-only`, selected by the product owner on July 19, 2026 |
 
 ### Remaining owner inputs
 
 | ID | Input needed | Why it matters |
 | --- | --- | --- |
 | EXT-001 | Authorized provider accounts, credentials, budgets, and optional real business data | Required only when enabling specific production connectors; does not change architecture |
-| DEC-004 | Open-source license | Required before the repository is legally distributed as open source |
 
-AI agents must not fabricate external access or silently decide the legal license. They may prepare provider-neutral configuration, comparisons, prototypes, and reversible groundwork while keeping the deployment dependency explicit.
+AI agents must not fabricate external access or silently change the legal license. They may prepare provider-neutral configuration, comparisons, prototypes, and reversible groundwork while keeping the deployment dependency explicit.
 
 ## 8. Scope evolution
 

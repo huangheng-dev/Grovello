@@ -29,6 +29,19 @@ docker compose up --build
 
 默认环境包含 Web、API、Worker、PostgreSQL/pgvector、Valkey、Temporal 和 Nginx，不会暗中连接任何模型或营销平台。
 
+## 开发访问契约
+
+阶段 1 访问端点要求已认证主体、会话和工作区上下文。在 OIDC 适配器接入以前，非生产环境提供一个明确仅限开发的契约：
+
+```bash
+curl http://localhost:8080/api/v1/workspaces/current/access \
+  -H "X-Grovello-Dev-Subject: northstar-owner" \
+  -H "X-Grovello-Dev-Session: local-session" \
+  -H "X-Workspace-ID: 00000000-0000-4000-8000-000000000001"
+```
+
+这些 Header 只用于选择带标签的种子访问记录，绝不能视为生产身份认证。生产环境会拒绝开发身份契约，直到配置并验证 OIDC 会话适配器。
+
 ## 可选平台与规模组件
 
 ```bash

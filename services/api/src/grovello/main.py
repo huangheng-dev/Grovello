@@ -23,7 +23,15 @@ def create_app() -> FastAPI:
         allow_origins=settings.origins,
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-        allow_headers=["Authorization", "Content-Type", "Idempotency-Key", "X-Request-ID", "X-Workspace-ID"],
+        allow_headers=[
+            "Authorization",
+            "Content-Type",
+            "Idempotency-Key",
+            "X-Grovello-Dev-Session",
+            "X-Grovello-Dev-Subject",
+            "X-Request-ID",
+            "X-Workspace-ID",
+        ],
     )
 
     @app.middleware("http")

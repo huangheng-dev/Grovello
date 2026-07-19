@@ -29,6 +29,19 @@ docker compose up --build
 
 The default stack contains the web app, API, worker, PostgreSQL/pgvector, Valkey, Temporal, and Nginx. It does not silently connect model or marketing providers.
 
+## Development access contract
+
+Phase 1 access endpoints require an authenticated subject, session, and workspace context. Until the OIDC adapter is connected, non-production environments expose an explicitly development-only contract:
+
+```bash
+curl http://localhost:8080/api/v1/workspaces/current/access \
+  -H "X-Grovello-Dev-Subject: northstar-owner" \
+  -H "X-Grovello-Dev-Session: local-session" \
+  -H "X-Workspace-ID: 00000000-0000-4000-8000-000000000001"
+```
+
+These headers select labeled seed access records and must never be treated as production authentication. Production rejects the development identity contract until a verified OIDC session adapter is configured.
+
 ## Optional platform and scale profiles
 
 ```bash

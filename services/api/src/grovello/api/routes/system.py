@@ -75,7 +75,16 @@ CAPABILITIES = [
         name="Organization & Governance",
         outcome="Every human and machine action stays authorized and auditable.",
         state="foundation",
-        object_types=["Workspace", "Role", "Policy", "AuditEvent"],
+        object_types=[
+            "Organization",
+            "Workspace",
+            "User",
+            "Team",
+            "Role",
+            "Policy",
+            "Session",
+            "AuditEvent",
+        ],
     ),
 ]
 

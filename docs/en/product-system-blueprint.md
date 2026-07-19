@@ -195,9 +195,8 @@ Implementation incompleteness is tracked by capability status and roadmap phase.
 
 ## 11. Remaining owner-only inputs
 
-The product architecture has defaults for fixture, autonomy, connector contracts and first reference integration bundle. Two categories still require owner input without creating an architecture gap:
+The product architecture has defaults for fixture, autonomy, connector contracts and first reference integration bundle. One category still requires owner input without creating an architecture gap:
 
-- production provider accounts, credentials, budgets and authorized business data when real connectors are enabled;
-- explicit selection of the repository license before legal open-source distribution.
+- production provider accounts, credentials, budgets and authorized business data when real connectors are enabled.
 
-AI agents may prepare configuration and comparisons but cannot fabricate access or choose the legal license without approval.
+The product owner selected `AGPL-3.0-only` on July 19, 2026. AI agents may prepare configuration and comparisons but cannot fabricate access or change the legal license without approval.
