@@ -1,0 +1,28 @@
+name: Product capability
+description: Propose a capability that closes or improves a measurable growth loop.
+title: "[Capability]: "
+labels: ["product"]
+body:
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Business outcome
+      description: What measurable revenue, margin, retention, or learning result changes?
+    validations: { required: true }
+  - type: dropdown
+    id: domain
+    attributes:
+      label: Product domain
+      options: [Growth Command, Brand & Market, Content & Traffic, Channels & Advertising, Leads & Outreach, Customers & Revenue, Customer Growth, Data & Intelligence, Automation Runtime, Organization & Governance]
+    validations: { required: true }
+  - type: textarea
+    id: loop
+    attributes:
+      label: Closed-loop path
+      description: Describe inputs, execution, outputs, feedback, permissions, approval, and failure handling.
+    validations: { required: true }
+  - type: textarea
+    id: providers
+    attributes:
+      label: Providers and alternatives
+      description: List external dependencies and how the self-hosted core remains usable.

@@ -1,0 +1,37 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "grovello-api"
+version = "0.1.0"
+description = "Business API and system-of-record boundary for Grovello"
+license = "AGPL-3.0-only"
+requires-python = ">=3.12"
+dependencies = [
+  "alembic==1.18.5",
+  "asyncpg==0.31.0",
+  "fastapi==0.139.2",
+  "httpx==0.28.1",
+  "pydantic-settings==2.14.2",
+  "python-json-logger==4.0.0",
+  "sqlalchemy[asyncio]==2.0.51",
+  "uvicorn[standard]==0.41.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest==9.1.1", "pytest-asyncio==1.3.0", "ruff==0.15.5"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/grovello"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 110
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "ASYNC", "SIM"]

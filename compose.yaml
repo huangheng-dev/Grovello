@@ -1,0 +1,118 @@
+name: grovello
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg18
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-grovello}
+      POSTGRES_USER: ${POSTGRES_USER:-grovello}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-grovello}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-grovello} -d ${POSTGRES_DB:-grovello}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  valkey:
+    image: valkey/valkey:8-alpine
+    command: ["valkey-server", "--appendonly", "yes", "--save", "60", "1000"]
+    volumes:
+      - valkey_data:/data
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  temporal:
+    image: temporalio/auto-setup:1.28.1
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB: postgres12
+      DB_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-grovello}
+      POSTGRES_PWD: ${POSTGRES_PASSWORD:-grovello}
+      POSTGRES_SEEDS: postgres
+      DYNAMIC_CONFIG_FILE_PATH: config/dynamicconfig/development-sql.yaml
+    volumes:
+      - ./infra/temporal/dynamicconfig:/etc/temporal/config/dynamicconfig:ro
+    restart: unless-stopped
+
+  temporal-ui:
+    image: temporalio/ui:2.42.1
+    depends_on:
+      - temporal
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_CORS_ORIGINS: http://localhost:8080
+    ports:
+      - "8233:8080"
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: services/api/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+    environment:
+      GROVELLO_ENVIRONMENT: development
+      GROVELLO_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-grovello}:${POSTGRES_PASSWORD:-grovello}@postgres:5432/${POSTGRES_DB:-grovello}
+      GROVELLO_VALKEY_URL: redis://valkey:6379/0
+      GROVELLO_TEMPORAL_ADDRESS: temporal:7233
+      GROVELLO_ALLOWED_ORIGINS: '["http://localhost:8080","http://localhost:3000"]'
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/system/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: .
+      dockerfile: services/workers/Dockerfile
+    depends_on:
+      - temporal
+    environment:
+      GROVELLO_TEMPORAL_ADDRESS: temporal:7233
+      GROVELLO_TEMPORAL_NAMESPACE: default
+      GROVELLO_TEMPORAL_TASK_QUEUE: grovello-growth
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: /api/v1
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+    restart: unless-stopped
+
+  gateway:
+    image: nginx:1.29-alpine
+    depends_on:
+      - web
+      - api
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  valkey_data:

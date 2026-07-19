@@ -1,0 +1,24 @@
+{
+  "name": "grovello",
+  "version": "0.1.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "description": "Open-source, multi-agent Growth OS",
+  "packageManager": "pnpm@11.9.0",
+  "engines": {
+    "node": ">=24.0.0",
+    "pnpm": ">=11.0.0"
+  },
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "typecheck": "turbo typecheck",
+    "test": "turbo test",
+    "lint": "turbo lint",
+    "check": "turbo typecheck test lint build"
+  },
+  "devDependencies": {
+    "turbo": "2.10.5",
+    "typescript": "6.0.3"
+  }
+}

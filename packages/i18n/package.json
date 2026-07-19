@@ -1,0 +1,11 @@
+{
+  "name": "@grovello/i18n",
+  "version": "0.1.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "exports": {
+    "./en.json": "./messages/en.json",
+    "./zh-CN.json": "./messages/zh-CN.json"
+  }
+}
