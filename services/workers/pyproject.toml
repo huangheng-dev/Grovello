@@ -9,7 +9,7 @@ description = "Temporal workflows, LangGraph agents, and connector contracts for
 license = "AGPL-3.0-only"
 requires-python = ">=3.12"
 dependencies = [
-  "langgraph==1.0.10",
+  "langgraph==1.2.9",
   "pydantic==2.12.5",
   "pydantic-settings==2.14.2",
   "temporalio==1.23.0",
