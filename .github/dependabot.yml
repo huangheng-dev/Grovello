@@ -6,15 +6,27 @@ updates:
     groups:
       web-foundation:
         patterns: ["next", "react", "react-dom", "next-intl", "typescript"]
-  - package-ecosystem: pip
-    directory: /services/api
+    ignore:
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
+      - dependency-name: eslint
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+  - package-ecosystem: uv
+    directories:
+      - /services/api
+      - /services/workers
     schedule: { interval: weekly }
-  - package-ecosystem: pip
-    directory: /services/workers
-    schedule: { interval: weekly }
+    groups:
+      shared-python-dependencies:
+        group-by: dependency-name
   - package-ecosystem: docker
     directory: /
     schedule: { interval: weekly }
   - package-ecosystem: github-actions
     directory: /
     schedule: { interval: weekly }
+    groups:
+      ci-actions:
+        patterns: ["actions/*", "pnpm/action-setup", "astral-sh/setup-uv"]
