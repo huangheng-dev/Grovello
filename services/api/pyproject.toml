@@ -14,7 +14,7 @@ dependencies = [
   "boto3==1.43.53",
   "fastapi==0.139.2",
   "httpx==0.28.1",
-  "pydantic==2.12.5",
+  "pydantic==2.13.4",
   "pydantic-settings==2.14.2",
   "python-json-logger==4.0.0",
   "sqlalchemy[asyncio]==2.0.51",
