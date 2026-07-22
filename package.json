@@ -15,7 +15,7 @@
     "typecheck": "turbo typecheck",
     "test": "turbo test",
     "lint": "turbo lint",
-    "check": "turbo typecheck test lint build"
+    "check": "turbo typecheck test lint build --concurrency=2"
   },
   "devDependencies": {
     "turbo": "2.10.5",

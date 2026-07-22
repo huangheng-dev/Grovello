@@ -1,3 +1,5 @@
-from grovello_workers.workflows.growth_loop import GrowthLoopWorkflow
+"""Temporal workflow package.
 
-__all__ = ["GrowthLoopWorkflow"]
+Workflow implementations are imported explicitly by the worker so activity modules can import
+their serializable contracts without triggering an eager workflow/activity import cycle.
+"""

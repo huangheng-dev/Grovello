@@ -3,8 +3,10 @@ FROM python:3.13-slim AS runtime
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_DISABLE_PIP_VERSION_CHECK=1
 WORKDIR /app
 RUN addgroup --system grovello && adduser --system --ingroup grovello grovello
-COPY services/api/pyproject.toml ./
-COPY services/api/src ./src
+COPY pyproject.toml ./
+COPY src ./src
+COPY alembic.ini ./alembic.ini
+COPY migrations ./migrations
 RUN pip install --no-cache-dir .
 USER grovello
 EXPOSE 8000

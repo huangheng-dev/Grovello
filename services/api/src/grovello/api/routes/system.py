@@ -1,7 +1,19 @@
-from fastapi import APIRouter, Request
+from typing import Annotated
 
+from fastapi import APIRouter, Depends, Request
+
+from grovello.api.dependencies import get_asset_scanner, get_object_storage
+from grovello.asset_scanner import AssetScanner
 from grovello.config import get_settings
-from grovello.schemas import ApiEnvelope, ApiMeta, Capability, HealthStatus
+from grovello.object_storage import ObjectStorage
+from grovello.schemas import (
+    ApiEnvelope,
+    ApiMeta,
+    AssetScannerHealthStatus,
+    Capability,
+    HealthStatus,
+    ObjectStorageHealthStatus,
+)
 
 router = APIRouter()
 settings = get_settings()
@@ -19,7 +31,18 @@ CAPABILITIES = [
         name="Brand & Market",
         outcome="Every action uses the same verified business truth.",
         state="foundation",
-        object_types=["Brand", "Product", "ICP", "KnowledgeDocument"],
+        object_types=[
+            "Brand",
+            "Product",
+            "Offer",
+            "PriceBook",
+            "Market",
+            "ICP",
+            "Evidence",
+            "KnowledgeDocument",
+            "Asset",
+            "CaseStudy",
+        ],
     ),
     Capability(
         key="content",
@@ -75,7 +98,16 @@ CAPABILITIES = [
         name="Organization & Governance",
         outcome="Every human and machine action stays authorized and auditable.",
         state="foundation",
-        object_types=["Workspace", "Role", "Policy", "AuditEvent"],
+        object_types=[
+            "Organization",
+            "Workspace",
+            "User",
+            "Team",
+            "Role",
+            "Policy",
+            "Session",
+            "AuditEvent",
+        ],
     ),
 ]
 
@@ -91,6 +123,61 @@ async def health(request: Request) -> ApiEnvelope[HealthStatus]:
         ),
         meta=ApiMeta(request_id=request.state.request_id),
     )
+
+
+@router.get(
+    "/object-storage/health",
+    response_model=ApiEnvelope[ObjectStorageHealthStatus],
+)
+async def object_storage_health(
+    request: Request,
+    storage: Annotated[ObjectStorage | None, Depends(get_object_storage)],
+) -> ApiEnvelope[ObjectStorageHealthStatus]:
+    if storage is None:
+        health_status = ObjectStorageHealthStatus(
+            status="degraded",
+            provider="s3-compatible",
+            configured=False,
+            detail="not_configured",
+        )
+    else:
+        result = await storage.health()
+        health_status = ObjectStorageHealthStatus(
+            status="ok" if result.available else "degraded",
+            provider=result.provider,
+            configured=True,
+            detail=result.detail,
+        )
+    return ApiEnvelope(
+        data=health_status,
+        meta=ApiMeta(request_id=request.state.request_id),
+    )
+
+
+@router.get(
+    "/asset-scanner/health",
+    response_model=ApiEnvelope[AssetScannerHealthStatus],
+)
+async def asset_scanner_health(
+    request: Request,
+    scanner: Annotated[AssetScanner | None, Depends(get_asset_scanner)],
+) -> ApiEnvelope[AssetScannerHealthStatus]:
+    if scanner is None:
+        health_status = AssetScannerHealthStatus(
+            status="degraded",
+            provider="clamav",
+            configured=False,
+            detail="not_configured",
+        )
+    else:
+        result = await scanner.health()
+        health_status = AssetScannerHealthStatus(
+            status="ok" if result.available else "degraded",
+            provider=result.provider,
+            configured=True,
+            detail=result.detail,
+        )
+    return ApiEnvelope(data=health_status, meta=ApiMeta(request_id=request.state.request_id))
 
 
 @router.get("/capabilities", response_model=ApiEnvelope[list[Capability]])
