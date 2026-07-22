@@ -16,7 +16,7 @@ dependencies = [
   "httpx==0.28.1",
   "pydantic==2.12.5",
   "pydantic-settings==2.14.2",
-  "python-json-logger==4.0.0",
+  "python-json-logger==4.1.0",
   "sqlalchemy[asyncio]==2.0.51",
   "temporalio==1.23.0",
   "uvicorn[standard]==0.41.0",
