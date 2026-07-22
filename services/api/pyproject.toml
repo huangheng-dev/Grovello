@@ -19,7 +19,7 @@ dependencies = [
   "python-json-logger==4.0.0",
   "sqlalchemy[asyncio]==2.0.51",
   "temporalio==1.23.0",
-  "uvicorn[standard]==0.41.0",
+  "uvicorn[standard]==0.51.0",
 ]
 
 [project.optional-dependencies]
