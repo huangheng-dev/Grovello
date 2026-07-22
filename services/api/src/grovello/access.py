@@ -106,6 +106,23 @@ OWNER_PERMISSIONS = frozenset(
         "policies.read",
         "policies.manage",
         "audit.read",
+        "business_truth.read",
+        "business_truth.write",
+        "workspace.onboarding.read",
+        "workspace.onboarding.write",
+        "workspace.onboarding.activate",
+        "business_truth.import.read",
+        "business_truth.import.create",
+        "business_truth.import.map",
+        "business_truth.import.apply",
+        "business_truth.import.cancel",
+        "business_truth.import.compensate",
+        "asset.read",
+        "asset.download",
+        "asset.write",
+        "asset.approve",
+        "asset.archive",
+        "asset.purge",
     }
 )
 
@@ -120,7 +137,18 @@ access_directory = AccessDirectory(
         ("northstar-analyst", NORTHSTAR_WORKSPACE_ID): WorkspaceGrant(
             workspace_id=NORTHSTAR_WORKSPACE_ID,
             roles=("growth_analyst",),
-            permissions=frozenset({"workspace.read", "members.read", "policies.read"}),
+            permissions=frozenset(
+                {
+                    "workspace.read",
+                    "members.read",
+                    "policies.read",
+                    "business_truth.read",
+                    "workspace.onboarding.read",
+                    "business_truth.import.read",
+                    "asset.read",
+                    "asset.download",
+                }
+            ),
         ),
         ("sandbox-owner", SANDBOX_WORKSPACE_ID): WorkspaceGrant(
             workspace_id=SANDBOX_WORKSPACE_ID,

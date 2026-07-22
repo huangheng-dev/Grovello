@@ -68,6 +68,9 @@ def test_access_summary_resolves_roles_and_permissions() -> None:
     assert access["workspace"]["id"] == NORTHSTAR_ID
     assert access["roles"] == ["growth_analyst"]
     assert "workspace.read" in access["permissions"]
+    assert "asset.read" in access["permissions"]
+    assert "asset.download" in access["permissions"]
+    assert "asset.write" not in access["permissions"]
     assert "audit.read" not in access["permissions"]
 
 

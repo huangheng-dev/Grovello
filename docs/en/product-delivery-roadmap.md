@@ -69,6 +69,8 @@ The sequence is dependency-driven, not a reduced product scope. Later domains re
 | 12. AI decision cycle | Evidence changes the next action | Decision context, recommendations, plan generation, forecast scenarios, evaluation, budget reallocation, approval, rollback | The system proposes a new plan from real outcomes, explains evidence and uncertainty, passes policy, and records accepted or rejected decisions |
 | 13. Open-source release | Others can operate and extend the real core | License decision, install path, migrations, fixtures, extension SDK/contracts, security docs, upgrade/rollback, contributor and release process | A clean environment can self-host, run the golden journey, replace providers, upgrade safely, and reproduce verification without a private author service |
 
+The approved P2-D architecture, security, and delivery boundary is specified in the [Workspace Onboarding and Structured Import implementation baseline](workspace-onboarding-import-baseline.md). P2-D1 implements isolated persistence and source verification; P2-D2 adds governed mapping, bounded parsing, deterministic validation, exact deduplication, and redacted review evidence. Apply, activation, and the operator experience remain incomplete, so onboarding and imports remain `foundation`, not `operational`.
+
 ## 5. First golden-path acceptance contract
 
 The first journey is complete only when all of the following are operational with real internal state and appropriately connected or controlled test providers. Labeled simulations may support development, but they do not satisfy the final gate.
