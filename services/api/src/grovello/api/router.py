@@ -5,6 +5,7 @@ from grovello.api.routes import (
     business_imports,
     business_truth,
     dashboard,
+    import_change_sets,
     system,
     workspace_onboarding,
     workspaces,
@@ -27,6 +28,11 @@ api_router.include_router(
 )
 api_router.include_router(
     business_imports.router,
+    prefix="/import-jobs",
+    tags=["business-imports"],
+)
+api_router.include_router(
+    import_change_sets.router,
     prefix="/import-jobs",
     tags=["business-imports"],
 )

@@ -129,6 +129,8 @@ class WorkspaceOnboardingSummary(ApiModel):
     activation_version: int
     activated_by: str | None
     activated_at: datetime | None
+    activation_business_purpose: str | None
+    activation_snapshot: dict
     created_at: datetime
     updated_at: datetime
 
@@ -136,6 +138,12 @@ class WorkspaceOnboardingSummary(ApiModel):
 class WorkspaceOnboardingMutationSummary(ApiModel):
     onboarding: WorkspaceOnboardingSummary
     idempotent_replay: bool
+
+
+class WorkspaceOnboardingActivation(ApiModel):
+    business_purpose: str = Field(min_length=8, max_length=240)
+    policy_version: int = Field(ge=1)
+    reviewed_warning_codes: list[str] = Field(default_factory=list, max_length=100)
 
 
 class ImportJobCreate(ApiModel):
@@ -209,6 +217,11 @@ class ImportJobSummary(ApiModel):
     selected_mapping_version_id: UUID | None
     validation_workflow_id: str | None
     parser_version: str | None
+    selected_change_set_id: UUID | None
+    apply_workflow_id: str | None
+    compensation_workflow_id: str | None
+    compensation_policy_version: int | None
+    compensation_business_purpose: str | None
     input_versions: dict
     result_summary: dict
     failure_code: str | None
@@ -329,6 +342,67 @@ class ImportValidationReportSummary(ApiModel):
     mapping: ImportMappingSummary | None
     preview: list[ImportPreviewRowSummary]
     issues: list[ImportIssueSummary]
+
+
+class ImportChangeSetCreate(ApiModel):
+    business_purpose: str = Field(min_length=8, max_length=240)
+    policy_version: int | None = Field(default=None, ge=1)
+
+
+class ImportChangeSetApproval(ApiModel):
+    decision: Literal["approved", "rejected"]
+    reason: str = Field(min_length=8, max_length=500)
+    policy_version: int = Field(ge=1)
+
+
+class ImportCompensationRequest(ApiModel):
+    business_purpose: str = Field(min_length=8, max_length=240)
+    policy_version: int = Field(ge=1)
+
+
+class ImportChangeSetOperationSummary(ApiModel):
+    id: UUID
+    source_row_number: int
+    operation: Literal["create", "new_version", "skip", "conflict"]
+    status: Literal["planned", "applied", "skipped", "failed", "compensated"]
+    target_object_id: UUID | None
+    expected_version_id: UUID | None
+    expected_version: int | None
+    result_object_id: UUID | None
+    result_version_id: UUID | None
+    result_version: int | None
+    failure_code: str | None
+
+
+class ImportChangeSetSummary(ApiModel):
+    id: UUID
+    job_id: UUID
+    version: int
+    plan_hash: str
+    status: Literal["draft", "ready_for_review", "approved", "rejected", "applied", "superseded"]
+    approval_state: Literal["not_required", "pending", "approved", "rejected"]
+    approval_policy_version: int | None
+    approval_requested_by: str | None
+    approval_requested_at: datetime | None
+    approval_decided_by: str | None
+    approval_decided_at: datetime | None
+    approval_reason: str | None
+    business_purpose: str
+    summary: dict
+    operations: list[ImportChangeSetOperationSummary]
+    created_by: str
+    created_at: datetime
+
+
+class ImportChangeSetMutationSummary(ApiModel):
+    change_set: ImportChangeSetSummary
+    idempotent_replay: bool
+
+
+class ImportWorkflowMutationSummary(ApiModel):
+    change_set: ImportChangeSetSummary
+    workflow_id: str
+    idempotent_replay: bool
 
 
 class AuditEventSummary(ApiModel):

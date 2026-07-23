@@ -143,6 +143,11 @@ class ImportJobRecord:
     selected_mapping_version_id: UUID | None = None
     validation_workflow_id: str | None = None
     parser_version: str | None = None
+    selected_change_set_id: UUID | None = None
+    apply_workflow_id: str | None = None
+    compensation_workflow_id: str | None = None
+    compensation_policy_version: int | None = None
+    compensation_business_purpose: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -649,6 +654,7 @@ class SqlAlchemyBusinessImportStore:
             "mapping",
             "validating",
             "ready_for_review",
+            "applying",
         }:
             raise BusinessImportConflictError(f"Import job cannot be cancelled from {item.status}")
         item.status = "cancelled"
@@ -896,4 +902,9 @@ class SqlAlchemyBusinessImportStore:
             selected_mapping_version_id=item.selected_mapping_version_id,
             validation_workflow_id=item.validation_workflow_id,
             parser_version=item.parser_version,
+            selected_change_set_id=item.selected_change_set_id,
+            apply_workflow_id=item.apply_workflow_id,
+            compensation_workflow_id=item.compensation_workflow_id,
+            compensation_policy_version=item.compensation_policy_version,
+            compensation_business_purpose=item.compensation_business_purpose,
         )

@@ -107,6 +107,8 @@ export interface WorkspaceOnboarding {
   activationVersion: number
   activatedBy: string | null
   activatedAt: string | null
+  activationBusinessPurpose: string | null
+  activationSnapshot: Record<string, unknown>
   createdAt: string
   updatedAt: string
 }
@@ -115,6 +117,12 @@ export interface WorkspaceOnboardingCreateInput {
   businessPurpose: string
   requiredObjectTypes: ImportableBusinessObjectType[]
   inputVersions: Record<string, unknown>
+}
+
+export interface WorkspaceOnboardingActivationInput {
+  businessPurpose: string
+  policyVersion: number
+  reviewedWarningCodes: string[]
 }
 
 export interface WorkspaceOnboardingMutation {
@@ -178,6 +186,14 @@ export interface ImportJob {
   invalidRows: number
   appliedRows: number
   workflowId: string | null
+  selectedMappingVersionId: string | null
+  validationWorkflowId: string | null
+  parserVersion: string | null
+  selectedChangeSetId: string | null
+  applyWorkflowId: string | null
+  compensationWorkflowId: string | null
+  compensationPolicyVersion: number | null
+  compensationBusinessPurpose: string | null
   inputVersions: Record<string, unknown>
   resultSummary: Record<string, unknown>
   failureCode: string | null
@@ -212,6 +228,73 @@ export interface ImportJobCreate {
 export interface ImportJobMutation {
   job: ImportJob
   idempotentReplay: boolean
+}
+
+export type ImportChangeSetOperationType = 'create' | 'new_version' | 'skip' | 'conflict'
+export type ImportChangeSetOperationStatus =
+  | 'planned'
+  | 'applied'
+  | 'skipped'
+  | 'failed'
+  | 'compensated'
+
+export interface ImportChangeSetOperation {
+  id: string
+  sourceRowNumber: number
+  operation: ImportChangeSetOperationType
+  status: ImportChangeSetOperationStatus
+  targetObjectId: string | null
+  expectedVersionId: string | null
+  expectedVersion: number | null
+  resultObjectId: string | null
+  resultVersionId: string | null
+  resultVersion: number | null
+  failureCode: string | null
+}
+
+export interface ImportChangeSet {
+  id: string
+  jobId: string
+  version: number
+  planHash: string
+  status: 'draft' | 'ready_for_review' | 'approved' | 'rejected' | 'applied' | 'superseded'
+  approvalState: 'not_required' | 'pending' | 'approved' | 'rejected'
+  approvalPolicyVersion: number | null
+  approvalRequestedBy: string | null
+  approvalRequestedAt: string | null
+  approvalDecidedBy: string | null
+  approvalDecidedAt: string | null
+  approvalReason: string | null
+  businessPurpose: string
+  summary: Record<string, number>
+  operations: ImportChangeSetOperation[]
+  createdBy: string
+  createdAt: string
+}
+
+export interface ImportChangeSetCreateInput {
+  businessPurpose: string
+  policyVersion: number | null
+}
+
+export interface ImportChangeSetApprovalInput {
+  decision: 'approved' | 'rejected'
+  reason: string
+  policyVersion: number
+}
+
+export interface ImportCompensationInput {
+  businessPurpose: string
+  policyVersion: number
+}
+
+export interface ImportChangeSetMutation {
+  changeSet: ImportChangeSet
+  idempotentReplay: boolean
+}
+
+export interface ImportWorkflowMutation extends ImportChangeSetMutation {
+  workflowId: string
 }
 
 export interface BusinessTruthCitationInput {

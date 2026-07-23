@@ -1,6 +1,6 @@
 # Workspace Onboarding and Structured Import implementation baseline
 
-Status: **approved; P2-D1 and P2-D2 foundations implemented and verified through July 23, 2026**.
+Status: **approved; P2-D1 through P2-D3 foundations implemented and verified through July 23, 2026**.
 
 This baseline defines the P2-D delivery boundary for persistent workspace onboarding and structured business-truth import. It implements Phase 2 of the product delivery roadmap without changing the ten product domains or the formal technology baseline.
 
@@ -117,11 +117,13 @@ The planned API groups are:
 
 ```text
 /api/v1/workspace-onboarding
+/api/v1/workspace-onboarding/activate
 /api/v1/import-jobs
 /api/v1/import-jobs/{job_id}/source-upload
 /api/v1/import-jobs/{job_id}/mapping
 /api/v1/import-jobs/{job_id}/validation
 /api/v1/import-jobs/{job_id}/change-set
+/api/v1/import-jobs/{job_id}/change-set/approval
 /api/v1/import-jobs/{job_id}/apply
 /api/v1/import-jobs/{job_id}/cancel
 /api/v1/import-jobs/{job_id}/compensate
@@ -235,6 +237,8 @@ change set, canonical object, object version, activation, or apply side effect.
 ### P2-D3 — Apply and onboarding activation
 
 Add dry-run change sets, policy/approval handoff, Temporal apply/cancellation/compensation, business-truth writes, profile completeness, activation, audit/outbox lineage, and recovery tests.
+
+Implementation evidence: migration `0011` adds tenant-scoped immutable change-set operations, exact expected/result version lineage, apply and compensation workflow identifiers, approval decision idempotency, and activation snapshots. The versioned API creates and reads dry-run plans, records policy-versioned approval decisions, starts authorized apply and compensation workflows, cancels active apply through native Temporal cancellation, and activates only a complete active profile. Apply reuses the canonical business-truth service with an operation key derived from workspace, job, source row, and change-set version. Compensation creates corrective or archived immutable versions and stops on a concurrent owner version. `BusinessProfileActivated` carries the exact object-version IDs and policy version. PostgreSQL upgrade/downgrade/upgrade, forced RLS, Alembic metadata parity, permission, workflow retry, and recovery contracts are verified. P2-D3 remains `foundation` until the P2-D4 bilingual operator journey and a full local multi-service acceptance run are complete.
 
 ### P2-D4 — Bilingual operator experience
 

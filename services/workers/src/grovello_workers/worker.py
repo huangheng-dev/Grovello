@@ -10,6 +10,12 @@ from grovello.asset_finalization_activity import (
 )
 from grovello.asset_scan_activity import fail_asset_scan, scan_asset_upload
 from grovello.asset_verification_activity import verify_asset_upload
+from grovello.import_apply_activity import (
+    apply_import_change_set,
+    compensate_import_change_set,
+    fail_import_apply,
+    fail_import_compensation,
+)
 from grovello.import_source_activity import (
     fail_import_source_scan,
     scan_import_source,
@@ -24,6 +30,7 @@ from grovello_workers.settings import get_settings
 from grovello_workers.workflows.asset_finalization import AssetFinalizationWorkflow
 from grovello_workers.workflows.asset_upload_verification import AssetUploadVerificationWorkflow
 from grovello_workers.workflows.growth_loop import GrowthLoopWorkflow
+from grovello_workers.workflows.import_apply import ImportApplyWorkflow, ImportCompensationWorkflow
 from grovello_workers.workflows.import_source_verification import ImportSourceVerificationWorkflow
 from grovello_workers.workflows.import_validation import ImportValidationWorkflow
 
@@ -40,6 +47,8 @@ async def run_worker() -> None:
             AssetFinalizationWorkflow,
             ImportSourceVerificationWorkflow,
             ImportValidationWorkflow,
+            ImportApplyWorkflow,
+            ImportCompensationWorkflow,
         ],
         activities=[
             prepare_growth_decision,
@@ -58,6 +67,10 @@ async def run_worker() -> None:
             fail_import_source_scan,
             validate_import,
             fail_import_validation,
+            apply_import_change_set,
+            compensate_import_change_set,
+            fail_import_apply,
+            fail_import_compensation,
         ],
     )
     await worker.run()

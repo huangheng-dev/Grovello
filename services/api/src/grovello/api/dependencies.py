@@ -23,11 +23,13 @@ from grovello.business_imports import (
 from grovello.business_truth import BusinessTruthStore, SqlAlchemyBusinessTruthStore
 from grovello.config import get_settings
 from grovello.database import workspace_session
+from grovello.import_change_sets import ImportApplyLauncher, SqlAlchemyImportChangeSetStore
 from grovello.object_storage import ObjectStorage
 from grovello.scanner_factory import build_asset_scanner
 from grovello.storage_factory import build_object_storage
 from grovello.temporal_asset_finalization import TemporalAssetFinalizationLauncher
 from grovello.temporal_asset_verification import TemporalAssetVerificationLauncher
+from grovello.temporal_import_apply import TemporalImportApplyLauncher
 from grovello.temporal_import_source import TemporalImportSourceVerificationLauncher
 from grovello.temporal_import_validation import TemporalImportValidationLauncher
 from grovello.workspace_onboarding import (
@@ -154,6 +156,16 @@ def get_import_validation_launcher() -> ImportValidationLauncher:
     )
 
 
+@lru_cache
+def get_import_apply_launcher() -> ImportApplyLauncher:
+    settings = get_settings()
+    return TemporalImportApplyLauncher(
+        settings.temporal_address,
+        settings.temporal_namespace,
+        settings.temporal_task_queue,
+    )
+
+
 async def get_asset_upload_store(
     access: Annotated[AuthorizedWorkspace, Depends(require_workspace_access)],
     storage: Annotated[ObjectStorage | None, Depends(get_object_storage)],
@@ -197,6 +209,13 @@ async def get_business_import_store(
             max_json_depth=settings.import_max_json_depth,
             max_preview_rows=settings.import_preview_rows,
         )
+
+
+async def get_import_change_set_store(
+    access: Annotated[AuthorizedWorkspace, Depends(require_workspace_access)],
+) -> AsyncIterator[SqlAlchemyImportChangeSetStore]:
+    async with workspace_session(access.workspace.id) as session:
+        yield SqlAlchemyImportChangeSetStore(session, access.workspace.id)
 
 
 async def get_asset_catalog_store(

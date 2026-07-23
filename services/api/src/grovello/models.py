@@ -494,6 +494,11 @@ class WorkspaceOnboarding(TimestampMixin, Base):
         UniqueConstraint("workspace_id", "id"),
         UniqueConstraint("workspace_id"),
         UniqueConstraint("workspace_id", "idempotency_key"),
+        UniqueConstraint(
+            "workspace_id",
+            "activation_idempotency_key",
+            name="uq_workspace_onboardings_activation_idempotency",
+        ),
         CheckConstraint(
             "status IN ('draft', 'in_progress', 'ready_for_review', 'active', 'blocked')",
             name="ck_workspace_onboardings_status",
@@ -518,6 +523,9 @@ class WorkspaceOnboarding(TimestampMixin, Base):
     activation_version: Mapped[int] = mapped_column(Integer, default=0)
     activated_by: Mapped[str | None] = mapped_column(String(180))
     activated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    activation_idempotency_key: Mapped[str | None] = mapped_column(String(180))
+    activation_business_purpose: Mapped[str | None] = mapped_column(String(240))
+    activation_snapshot: Mapped[dict] = mapped_column(JSON, default=dict)
 
 
 class ImportJob(TimestampMixin, Base):
@@ -527,10 +535,18 @@ class ImportJob(TimestampMixin, Base):
         UniqueConstraint("workspace_id", "idempotency_key"),
         UniqueConstraint("workspace_id", "completion_idempotency_key"),
         UniqueConstraint("workspace_id", "cancellation_idempotency_key"),
+        UniqueConstraint("workspace_id", "apply_idempotency_key"),
+        UniqueConstraint("workspace_id", "compensation_idempotency_key"),
         ForeignKeyConstraint(
             ["workspace_id", "selected_mapping_version_id"],
             ["import_mapping_versions.workspace_id", "import_mapping_versions.id"],
             name="fk_import_jobs_selected_mapping_workspace",
+            use_alter=True,
+        ),
+        ForeignKeyConstraint(
+            ["workspace_id", "selected_change_set_id"],
+            ["import_change_sets.workspace_id", "import_change_sets.id"],
+            name="fk_import_jobs_selected_change_set_workspace",
             use_alter=True,
         ),
         CheckConstraint(
@@ -579,6 +595,13 @@ class ImportJob(TimestampMixin, Base):
     validation_business_purpose: Mapped[str | None] = mapped_column(String(240))
     validation_workflow_id: Mapped[str | None] = mapped_column(String(180), unique=True, index=True)
     parser_version: Mapped[str | None] = mapped_column(String(40))
+    selected_change_set_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), index=True)
+    apply_idempotency_key: Mapped[str | None] = mapped_column(String(180))
+    apply_workflow_id: Mapped[str | None] = mapped_column(String(180), unique=True, index=True)
+    compensation_idempotency_key: Mapped[str | None] = mapped_column(String(180))
+    compensation_workflow_id: Mapped[str | None] = mapped_column(String(180), unique=True, index=True)
+    compensation_policy_version: Mapped[int | None] = mapped_column(Integer)
+    compensation_business_purpose: Mapped[str | None] = mapped_column(String(240))
     input_versions: Mapped[dict] = mapped_column(JSON, default=dict)
     result_summary: Mapped[dict] = mapped_column(JSON, default=dict)
     failure_code: Mapped[str | None] = mapped_column(String(100))
@@ -748,6 +771,8 @@ class ImportChangeSet(Base):
         UniqueConstraint("workspace_id", "id"),
         UniqueConstraint("workspace_id", "job_id", "version"),
         UniqueConstraint("workspace_id", "plan_hash"),
+        UniqueConstraint("workspace_id", "job_id", "idempotency_key"),
+        UniqueConstraint("workspace_id", "approval_idempotency_key"),
         ForeignKeyConstraint(
             ["workspace_id", "job_id"], ["import_jobs.workspace_id", "import_jobs.id"], ondelete="CASCADE"
         ),
@@ -773,5 +798,81 @@ class ImportChangeSet(Base):
     expected_inputs: Mapped[dict] = mapped_column(JSON, default=dict)
     summary: Mapped[dict] = mapped_column(JSON, default=dict)
     approval_state: Mapped[str] = mapped_column(String(32), default="not_required")
+    idempotency_key: Mapped[str] = mapped_column(String(180))
+    business_purpose: Mapped[str] = mapped_column(String(240))
+    approval_policy_version: Mapped[int | None] = mapped_column(Integer)
+    approval_requested_by: Mapped[str | None] = mapped_column(String(180))
+    approval_requested_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    approval_decided_by: Mapped[str | None] = mapped_column(String(180))
+    approval_decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    approval_reason: Mapped[str | None] = mapped_column(String(500))
+    approval_idempotency_key: Mapped[str | None] = mapped_column(String(180))
     created_by: Mapped[str] = mapped_column(String(180))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class ImportChangeSetOperation(Base):
+    __tablename__ = "import_change_set_operations"
+    __table_args__ = (
+        UniqueConstraint("workspace_id", "id"),
+        UniqueConstraint("workspace_id", "change_set_id", "sequence"),
+        UniqueConstraint("workspace_id", "operation_key"),
+        ForeignKeyConstraint(
+            ["workspace_id", "change_set_id"],
+            ["import_change_sets.workspace_id", "import_change_sets.id"],
+            ondelete="CASCADE",
+        ),
+        ForeignKeyConstraint(
+            ["workspace_id", "row_id"],
+            ["import_rows.workspace_id", "import_rows.id"],
+            ondelete="CASCADE",
+        ),
+        ForeignKeyConstraint(
+            ["workspace_id", "target_object_id"],
+            ["business_objects.workspace_id", "business_objects.id"],
+        ),
+        ForeignKeyConstraint(
+            ["workspace_id", "expected_version_id"],
+            ["business_object_versions.workspace_id", "business_object_versions.id"],
+        ),
+        ForeignKeyConstraint(
+            ["workspace_id", "result_object_id"],
+            ["business_objects.workspace_id", "business_objects.id"],
+        ),
+        ForeignKeyConstraint(
+            ["workspace_id", "result_version_id"],
+            ["business_object_versions.workspace_id", "business_object_versions.id"],
+        ),
+        CheckConstraint("sequence > 0", name="ck_import_change_set_operations_sequence"),
+        CheckConstraint(
+            "operation IN ('create', 'new_version', 'skip', 'conflict')",
+            name="ck_import_change_set_operations_operation",
+        ),
+        CheckConstraint(
+            "status IN ('planned', 'applied', 'skipped', 'failed', 'compensated')",
+            name="ck_import_change_set_operations_status",
+        ),
+    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    workspace_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("workspaces.id", ondelete="CASCADE"), index=True
+    )
+    change_set_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), index=True)
+    row_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), index=True)
+    sequence: Mapped[int] = mapped_column(Integer)
+    operation_key: Mapped[str] = mapped_column(String(180))
+    operation: Mapped[str] = mapped_column(String(32))
+    status: Mapped[str] = mapped_column(String(32), default="planned", index=True)
+    target_object_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
+    expected_version_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
+    expected_version: Mapped[int | None] = mapped_column(Integer)
+    input_snapshot: Mapped[dict] = mapped_column(JSON)
+    result_object_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
+    result_version_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
+    result_version: Mapped[int | None] = mapped_column(Integer)
+    compensation_snapshot: Mapped[dict] = mapped_column(JSON, default=dict)
+    failure_code: Mapped[str | None] = mapped_column(String(100))
+    failure_detail: Mapped[str | None] = mapped_column(Text)
+    applied_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    compensated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
