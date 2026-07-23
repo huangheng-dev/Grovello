@@ -24,6 +24,7 @@ from grovello.business_truth import BusinessTruthStore, SqlAlchemyBusinessTruthS
 from grovello.config import get_settings
 from grovello.database import workspace_session
 from grovello.import_change_sets import ImportApplyLauncher, SqlAlchemyImportChangeSetStore
+from grovello.knowledge import KnowledgeStore, SqlAlchemyKnowledgeStore
 from grovello.object_storage import ObjectStorage
 from grovello.scanner_factory import build_asset_scanner
 from grovello.storage_factory import build_object_storage
@@ -97,6 +98,13 @@ async def get_business_truth_store(
 ) -> AsyncIterator[BusinessTruthStore]:
     async with workspace_session(access.workspace.id) as session:
         yield SqlAlchemyBusinessTruthStore(session, access.workspace.id)
+
+
+async def get_knowledge_store(
+    access: Annotated[AuthorizedWorkspace, Depends(require_workspace_access)],
+) -> AsyncIterator[KnowledgeStore]:
+    async with workspace_session(access.workspace.id) as session:
+        yield SqlAlchemyKnowledgeStore(session, access.workspace.id)
 
 
 async def get_workspace_onboarding_store(

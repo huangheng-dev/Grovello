@@ -91,6 +91,12 @@ P2-D1 至 P2-D4 在 `/api/v1/workspace-onboarding` 和 `/api/v1/import-jobs` 提
 
 校验会停在 `ready_for_review`，直到授权所有者创建不可变 Dry-run Change Set。激活写入要求记录带策略版本的审批决定；持久化 Temporal 工作流把选定记录应用到规范业务事实，并支持取消与精确补偿。工作区资料激活仍是独立的精确快照门禁；缺少有效 Product、Offer、Market 或 ICP 选择时会拒绝激活。本地已核验流程覆盖来源上传、恶意文件扫描、映射、校验、Change Set 审查、应用、补偿、激活、审计事件和事务 Outbox 事件。生产身份、通用审批、运行手册和非开发部署证据接通以前，该能力仍只能标记为 `foundation`。
 
+## 知识入库契约基础
+
+P2-E1 提供版本化的 `POST /api/v1/knowledge/ingestions`、`GET /api/v1/knowledge/ingestions` 和 `GET /api/v1/knowledge/ingestions/{ingestion_id}` 端点。创建需要 `knowledge.ingest` 和 `Idempotency-Key`，读取需要 `knowledge.retrieve`。请求必须引用精确且符合条件的 active `KnowledgeDocument`、Evidence、CaseStudy，或 clean 且 available 的 Asset 版本。API 会持久化不可变来源快照和 pending Generation，不会在 HTTP 请求内解析内容。
+
+规范 `knowledge_chunk` 仍是派生对象。通用所有者和导入 Mutation 会拒绝创建它，通用业务事实读取不会暴露仅限流水线的片段，只有授权的内部服务 Actor 可以创建带精确来源与 Generation 血缘的不可变片段版本。P2-E1 不提供提取、确定性切块、Embedding、词法或语义检索、引用或操作界面。
+
 ## 素材最终化与下载契约
 
 完成上传后会核验精确的供应商对象并执行恶意文件扫描，但会有意停在

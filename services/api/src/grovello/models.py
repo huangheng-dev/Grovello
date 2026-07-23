@@ -259,6 +259,12 @@ class BusinessObjectVersion(Base):
     __tablename__ = "business_object_versions"
     __table_args__ = (
         UniqueConstraint("workspace_id", "id"),
+        UniqueConstraint(
+            "workspace_id",
+            "object_id",
+            "id",
+            name="uq_business_object_versions_workspace_object_id_id",
+        ),
         UniqueConstraint("workspace_id", "object_id", "version"),
         UniqueConstraint("workspace_id", "idempotency_key"),
         ForeignKeyConstraint(
@@ -273,7 +279,7 @@ class BusinessObjectVersion(Base):
             name="ck_business_object_versions_status",
         ),
         CheckConstraint(
-            "source_type IN ('owner_edit', 'import', 'seed')",
+            "source_type IN ('owner_edit', 'import', 'seed', 'pipeline')",
             name="ck_business_object_versions_source_type",
         ),
     )
@@ -318,6 +324,250 @@ class BusinessTruthCitation(Base):
     claim_text: Mapped[str] = mapped_column(Text)
     locator: Mapped[dict] = mapped_column(JSON, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class KnowledgeIngestion(TimestampMixin, Base):
+    __tablename__ = "knowledge_ingestions"
+    __table_args__ = (
+        UniqueConstraint("workspace_id", "id"),
+        UniqueConstraint("workspace_id", "idempotency_key"),
+        UniqueConstraint("workflow_id"),
+        ForeignKeyConstraint(
+            ["workspace_id", "source_object_id"],
+            ["business_objects.workspace_id", "business_objects.id"],
+        ),
+        ForeignKeyConstraint(
+            ["workspace_id", "source_object_id", "source_version_id"],
+            [
+                "business_object_versions.workspace_id",
+                "business_object_versions.object_id",
+                "business_object_versions.id",
+            ],
+        ),
+        CheckConstraint(
+            "source_object_type IN ('knowledge_document', 'evidence', 'case_study', 'asset')",
+            name="ck_knowledge_ingestions_source_object_type",
+        ),
+        CheckConstraint(
+            "status IN ('pending', 'running', 'ready', 'failed', 'cancelled')",
+            name="ck_knowledge_ingestions_status",
+        ),
+        CheckConstraint(
+            "request_hash ~ '^[0-9a-f]{64}$'",
+            name="ck_knowledge_ingestions_request_hash",
+        ),
+        CheckConstraint(
+            "approval_policy_version IS NULL OR approval_policy_version > 0",
+            name="ck_knowledge_ingestions_policy_version",
+        ),
+    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    workspace_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("workspaces.id", ondelete="CASCADE"), index=True
+    )
+    source_object_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), index=True)
+    source_version_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), index=True)
+    source_object_type: Mapped[str] = mapped_column(String(40))
+    actor_id: Mapped[str] = mapped_column(String(180), index=True)
+    session_id: Mapped[str | None] = mapped_column(String(180))
+    request_id: Mapped[str | None] = mapped_column(String(180))
+    idempotency_key: Mapped[str] = mapped_column(String(180))
+    request_hash: Mapped[str] = mapped_column(String(64))
+    business_purpose: Mapped[str] = mapped_column(String(240))
+    pipeline_profile: Mapped[str] = mapped_column(String(120))
+    pipeline_version: Mapped[str] = mapped_column(String(80))
+    status: Mapped[str] = mapped_column(String(32), default="pending", index=True)
+    input_versions: Mapped[dict] = mapped_column(JSON, default=dict)
+    approval_policy_version: Mapped[int | None] = mapped_column(Integer)
+    workflow_id: Mapped[str | None] = mapped_column(String(180), index=True)
+    workflow_run_id: Mapped[str | None] = mapped_column(String(180))
+    cost_summary: Mapped[dict] = mapped_column(JSON, default=dict)
+    failure_code: Mapped[str | None] = mapped_column(String(100))
+    failure_detail: Mapped[str | None] = mapped_column(Text)
+    cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class KnowledgeSourceSnapshot(Base):
+    __tablename__ = "knowledge_source_snapshots"
+    __table_args__ = (
+        UniqueConstraint("workspace_id", "id"),
+        UniqueConstraint("workspace_id", "ingestion_id"),
+        ForeignKeyConstraint(
+            ["workspace_id", "ingestion_id"],
+            ["knowledge_ingestions.workspace_id", "knowledge_ingestions.id"],
+            ondelete="CASCADE",
+        ),
+        ForeignKeyConstraint(
+            ["workspace_id", "source_object_id"],
+            ["business_objects.workspace_id", "business_objects.id"],
+        ),
+        ForeignKeyConstraint(
+            ["workspace_id", "source_object_id", "source_version_id"],
+            [
+                "business_object_versions.workspace_id",
+                "business_object_versions.object_id",
+                "business_object_versions.id",
+            ],
+        ),
+        CheckConstraint(
+            "source_object_type IN ('knowledge_document', 'evidence', 'case_study', 'asset')",
+            name="ck_knowledge_source_snapshots_source_object_type",
+        ),
+        CheckConstraint(
+            "content_sha256 ~ '^[0-9a-f]{64}$'",
+            name="ck_knowledge_source_snapshots_content_sha256",
+        ),
+        CheckConstraint(
+            "policy_version IS NULL OR policy_version > 0",
+            name="ck_knowledge_source_snapshots_policy_version",
+        ),
+    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    workspace_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("workspaces.id", ondelete="CASCADE"), index=True
+    )
+    ingestion_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), index=True)
+    source_object_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), index=True)
+    source_version_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), index=True)
+    source_object_type: Mapped[str] = mapped_column(String(40))
+    content_sha256: Mapped[str] = mapped_column(String(64))
+    locale: Mapped[str] = mapped_column(String(12))
+    source_status: Mapped[str] = mapped_column(String(32))
+    usage_rights: Mapped[str] = mapped_column(String(64))
+    sensitivity: Mapped[str] = mapped_column(String(32))
+    parser_eligible: Mapped[bool] = mapped_column(Boolean)
+    source_locator: Mapped[dict] = mapped_column(JSON, default=dict)
+    source_metadata: Mapped[dict] = mapped_column(JSON, default=dict)
+    policy_version: Mapped[int | None] = mapped_column(Integer)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class KnowledgeGeneration(TimestampMixin, Base):
+    __tablename__ = "knowledge_generations"
+    __table_args__ = (
+        UniqueConstraint("workspace_id", "id"),
+        UniqueConstraint("workspace_id", "ingestion_id"),
+        ForeignKeyConstraint(
+            ["workspace_id", "ingestion_id"],
+            ["knowledge_ingestions.workspace_id", "knowledge_ingestions.id"],
+            ondelete="CASCADE",
+        ),
+        ForeignKeyConstraint(
+            ["workspace_id", "source_snapshot_id"],
+            ["knowledge_source_snapshots.workspace_id", "knowledge_source_snapshots.id"],
+            ondelete="CASCADE",
+        ),
+        CheckConstraint(
+            "status IN ('pending', 'building', 'staged', 'active', 'retired', 'failed')",
+            name="ck_knowledge_generations_status",
+        ),
+        CheckConstraint("chunk_count >= 0", name="ck_knowledge_generations_chunk_count"),
+    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    workspace_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("workspaces.id", ondelete="CASCADE"), index=True
+    )
+    ingestion_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), index=True)
+    source_snapshot_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), index=True)
+    status: Mapped[str] = mapped_column(String(32), default="pending", index=True)
+    pipeline_profile: Mapped[str] = mapped_column(String(120))
+    pipeline_version: Mapped[str] = mapped_column(String(80))
+    parser_profile: Mapped[str] = mapped_column(String(120), default="canonical-json-v1")
+    normalizer_version: Mapped[str] = mapped_column(String(80), default="none")
+    classifier_version: Mapped[str] = mapped_column(String(80), default="none")
+    chunker_version: Mapped[str] = mapped_column(String(80), default="none")
+    embedding_config: Mapped[dict] = mapped_column(JSON, default=dict)
+    chunk_count: Mapped[int] = mapped_column(Integer, default=0)
+    warnings: Mapped[list] = mapped_column(JSON, default=list)
+    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    retired_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class KnowledgeGenerationChunk(Base):
+    __tablename__ = "knowledge_generation_chunks"
+    __table_args__ = (
+        UniqueConstraint("workspace_id", "id"),
+        UniqueConstraint("workspace_id", "generation_id", "ordinal"),
+        UniqueConstraint("workspace_id", "chunk_version_id"),
+        ForeignKeyConstraint(
+            ["workspace_id", "generation_id"],
+            ["knowledge_generations.workspace_id", "knowledge_generations.id"],
+            ondelete="CASCADE",
+        ),
+        ForeignKeyConstraint(
+            ["workspace_id", "chunk_object_id"],
+            ["business_objects.workspace_id", "business_objects.id"],
+            ondelete="CASCADE",
+        ),
+        ForeignKeyConstraint(
+            ["workspace_id", "chunk_object_id", "chunk_version_id"],
+            [
+                "business_object_versions.workspace_id",
+                "business_object_versions.object_id",
+                "business_object_versions.id",
+            ],
+            ondelete="CASCADE",
+        ),
+        CheckConstraint("ordinal > 0", name="ck_knowledge_generation_chunks_ordinal"),
+        CheckConstraint(
+            "content_sha256 ~ '^[0-9a-f]{64}$'",
+            name="ck_knowledge_generation_chunks_content_sha256",
+        ),
+    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    workspace_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("workspaces.id", ondelete="CASCADE"), index=True
+    )
+    generation_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), index=True)
+    chunk_object_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), index=True)
+    chunk_version_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), index=True)
+    ordinal: Mapped[int] = mapped_column(Integer)
+    content_sha256: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class KnowledgeRetrievalReceipt(Base):
+    __tablename__ = "knowledge_retrieval_receipts"
+    __table_args__ = (
+        UniqueConstraint("workspace_id", "id"),
+        CheckConstraint(
+            "query_hash ~ '^[0-9a-f]{64}$'",
+            name="ck_knowledge_retrieval_receipts_query_hash",
+        ),
+        CheckConstraint(
+            "semantic_status IN ('unavailable', 'available', 'degraded')",
+            name="ck_knowledge_retrieval_receipts_semantic_status",
+        ),
+        CheckConstraint(
+            "policy_version IS NULL OR policy_version > 0",
+            name="ck_knowledge_retrieval_receipts_policy_version",
+        ),
+        CheckConstraint("result_count >= 0", name="ck_knowledge_retrieval_receipts_result_count"),
+        CheckConstraint("latency_ms >= 0", name="ck_knowledge_retrieval_receipts_latency_ms"),
+    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    workspace_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("workspaces.id", ondelete="CASCADE"), index=True
+    )
+    actor_id: Mapped[str] = mapped_column(String(180), index=True)
+    session_id: Mapped[str | None] = mapped_column(String(180))
+    request_id: Mapped[str | None] = mapped_column(String(180))
+    business_purpose: Mapped[str] = mapped_column(String(240))
+    query_hash: Mapped[str] = mapped_column(String(64), index=True)
+    query_metadata: Mapped[dict] = mapped_column(JSON, default=dict)
+    filters: Mapped[dict] = mapped_column(JSON, default=dict)
+    policy_version: Mapped[int | None] = mapped_column(Integer)
+    lexical_config: Mapped[dict] = mapped_column(JSON, default=dict)
+    vector_config: Mapped[dict] = mapped_column(JSON, default=dict)
+    semantic_status: Mapped[str] = mapped_column(String(32), default="unavailable")
+    result_chunk_version_ids: Mapped[list] = mapped_column(JSON, default=list)
+    score_components: Mapped[list] = mapped_column(JSON, default=list)
+    result_count: Mapped[int] = mapped_column(Integer, default=0)
+    latency_ms: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), index=True
+    )
 
 
 class AssetUploadSession(TimestampMixin, Base):

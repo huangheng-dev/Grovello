@@ -1,4 +1,9 @@
-import type { BusinessObject, BusinessObjectType, BusinessProfile } from '@grovello/api-client'
+import type {
+  BusinessObject,
+  BusinessObjectType,
+  BusinessProfile,
+  OwnerManagedBusinessObjectType,
+} from '@grovello/api-client'
 
 const requiredProfileObjectTypes: BusinessObjectType[] = [
   'brand',
@@ -22,7 +27,7 @@ export const businessTruthTypesByPage: Record<string, BusinessObjectType[]> = {
   assets: ['asset'],
 }
 
-export const businessTruthCreateTypesByPage: Record<string, BusinessObjectType[]> = {
+export const businessTruthCreateTypesByPage: Record<string, OwnerManagedBusinessObjectType[]> = {
   ...businessTruthTypesByPage,
   knowledge: ['evidence', 'knowledge_document', 'case_study'],
 }

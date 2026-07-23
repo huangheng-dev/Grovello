@@ -6,6 +6,7 @@ from grovello.api.routes import (
     business_truth,
     dashboard,
     import_change_sets,
+    knowledge,
     system,
     workspace_onboarding,
     workspaces,
@@ -21,6 +22,7 @@ api_router.include_router(
 )
 api_router.include_router(dashboard.router, prefix="/dashboard", tags=["dashboard"])
 api_router.include_router(assets.router, prefix="/assets", tags=["assets"])
+api_router.include_router(knowledge.router, prefix="/knowledge", tags=["knowledge"])
 api_router.include_router(
     workspace_onboarding.router,
     prefix="/workspace-onboarding",

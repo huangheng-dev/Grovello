@@ -91,6 +91,12 @@ The browser or client uploads source bytes directly through the returned constra
 
 Validation stops at `ready_for_review` until an authorized owner creates an immutable dry-run change set. Active writes require the recorded policy-versioned approval decision. Durable Temporal workflows apply selected records to canonical business truth and support cancellation and exact compensation. Workspace-profile activation remains a separate, exact snapshot gate and rejects missing active Product, Offer, Market, or ICP selections. The locally verified journey includes source upload, malware scanning, mapping, validation, change-set review, apply, compensation, activation, audit events, and transactional outbox events. It remains a `foundation` claim until production identity, general approval, operational runbooks, and non-development deployment evidence are connected.
 
+## Knowledge ingestion contract foundation
+
+P2-E1 exposes versioned `POST /api/v1/knowledge/ingestions`, `GET /api/v1/knowledge/ingestions`, and `GET /api/v1/knowledge/ingestions/{ingestion_id}` endpoints. Creation requires `knowledge.ingest` and an `Idempotency-Key`; reads require `knowledge.retrieve`. A request must reference an exact eligible active `KnowledgeDocument`, Evidence, CaseStudy, or clean available Asset version. The API persists an immutable source snapshot and a pending generation; it does not parse content inline.
+
+Canonical `knowledge_chunk` records remain derived objects. Generic owner and import mutations reject them, generic business-truth reads do not expose pipeline-only chunks, and only an authorized internal service actor may create an immutable chunk version with exact source and generation lineage. P2-E1 does not provide extraction, deterministic chunking, embeddings, lexical or semantic retrieval, citations, or an operator UI.
+
 ## Asset finalization and download contract
 
 Completing an upload verifies its exact provider object and runs malware scanning, but intentionally

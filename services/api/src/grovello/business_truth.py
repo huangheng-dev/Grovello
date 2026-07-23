@@ -29,7 +29,9 @@ type BusinessObjectType = Literal[
     "case_study",
 ]
 type BusinessObjectStatus = Literal["draft", "active", "archived"]
-type BusinessTruthSource = Literal["owner_edit", "import", "seed"]
+type BusinessTruthSource = Literal["owner_edit", "import", "seed", "pipeline"]
+
+PIPELINE_ONLY_OBJECT_TYPES: frozenset[BusinessObjectType] = frozenset({"knowledge_chunk"})
 
 REQUIRED_PROFILE_OBJECT_TYPES: tuple[BusinessObjectType, ...] = (
     "brand",
@@ -59,6 +61,13 @@ class InvalidEvidenceCitationError(ValueError):
 
 class InvalidBusinessTruthPayloadError(ValueError):
     pass
+
+
+def reject_pipeline_only_mutation(object_type: BusinessObjectType) -> None:
+    if object_type in PIPELINE_ONLY_OBJECT_TYPES:
+        raise InvalidBusinessTruthPayloadError(
+            f"{object_type} can only be created by the governed knowledge pipeline"
+        )
 
 
 STRUCTURED_PAYLOAD_RULES: dict[BusinessObjectType, dict[str, object]] = {
@@ -374,6 +383,7 @@ class SqlAlchemyBusinessTruthStore:
         command: CreateBusinessObjectCommand,
         context: MutationContext,
     ) -> BusinessTruthMutationResult:
+        reject_pipeline_only_mutation(command.object_type)
         replay = await self._version_for_idempotency_key(context.idempotency_key)
         if replay is not None:
             return BusinessTruthMutationResult(
@@ -448,8 +458,10 @@ class SqlAlchemyBusinessTruthStore:
         if replay is not None:
             if replay.object_id != object_id:
                 raise BusinessTruthConflictError("Idempotency key belongs to another business object")
+            replay_object = await self.get_object(object_id, replay.version)
+            reject_pipeline_only_mutation(replay_object.object_type)
             return BusinessTruthMutationResult(
-                object=await self.get_object(object_id, replay.version),
+                object=replay_object,
                 idempotent_replay=True,
             )
 
@@ -461,8 +473,9 @@ class SqlAlchemyBusinessTruthStore:
             )
             .with_for_update()
         )
-        if business_object is None:
+        if business_object is None or business_object.object_type in PIPELINE_ONLY_OBJECT_TYPES:
             raise BusinessTruthNotFoundError("Business object not found")
+        reject_pipeline_only_mutation(business_object.object_type)
 
         validate_business_truth_payload(
             business_object.object_type,
@@ -513,7 +526,7 @@ class SqlAlchemyBusinessTruthStore:
                 BusinessObject.id == object_id,
             )
         )
-        if business_object is None:
+        if business_object is None or business_object.object_type in PIPELINE_ONLY_OBJECT_TYPES:
             raise BusinessTruthNotFoundError("Business object not found")
         selected_version = version or business_object.current_version
         version_row = await self._session.scalar(
@@ -531,7 +544,10 @@ class SqlAlchemyBusinessTruthStore:
         objects = list(
             await self._session.scalars(
                 select(BusinessObject)
-                .where(BusinessObject.workspace_id == self._workspace_id)
+                .where(
+                    BusinessObject.workspace_id == self._workspace_id,
+                    BusinessObject.object_type != "knowledge_chunk",
+                )
                 .order_by(BusinessObject.object_type, BusinessObject.slug)
             )
         )
@@ -710,6 +726,7 @@ class InMemoryBusinessTruthStore:
         command: CreateBusinessObjectCommand,
         context: MutationContext,
     ) -> BusinessTruthMutationResult:
+        reject_pipeline_only_mutation(command.object_type)
         if replay := self._idempotency.get(context.idempotency_key):
             return BusinessTruthMutationResult(
                 object=self._versions[replay],
@@ -761,13 +778,15 @@ class InMemoryBusinessTruthStore:
         if replay := self._idempotency.get(context.idempotency_key):
             if replay[0] != object_id:
                 raise BusinessTruthConflictError("Idempotency key belongs to another business object")
+            reject_pipeline_only_mutation(self._versions[replay].object_type)
             return BusinessTruthMutationResult(
                 object=self._versions[replay],
                 idempotent_replay=True,
             )
         current = self._objects.get(object_id)
-        if current is None:
+        if current is None or current.object_type in PIPELINE_ONLY_OBJECT_TYPES:
             raise BusinessTruthNotFoundError("Business object not found")
+        reject_pipeline_only_mutation(current.object_type)
         validate_business_truth_payload(
             current.object_type,
             command.payload,
@@ -804,7 +823,7 @@ class InMemoryBusinessTruthStore:
         version: int | None = None,
     ) -> BusinessObjectRecord:
         current = self._objects.get(object_id)
-        if current is None:
+        if current is None or current.object_type in PIPELINE_ONLY_OBJECT_TYPES:
             raise BusinessTruthNotFoundError("Business object not found")
         if version is None:
             return current
@@ -814,7 +833,16 @@ class InMemoryBusinessTruthStore:
         return replace(record, current_version=current.current_version)
 
     async def get_profile(self) -> BusinessProfileRecord:
-        records = tuple(sorted(self._objects.values(), key=lambda item: (item.object_type, item.slug)))
+        records = tuple(
+            sorted(
+                (
+                    item
+                    for item in self._objects.values()
+                    if item.object_type not in PIPELINE_ONLY_OBJECT_TYPES
+                ),
+                key=lambda item: (item.object_type, item.slug),
+            )
+        )
         return build_profile(self._workspace_id, records)
 
     def seed_object(
@@ -826,6 +854,7 @@ class InMemoryBusinessTruthStore:
         payload: dict,
         citation_evidence_version_id: UUID | None = None,
     ) -> BusinessObjectRecord:
+        reject_pipeline_only_mutation(object_type)
         object_id = uuid.uuid5(self._workspace_id, f"business-object:{object_type}:{slug}")
         citation_drafts = (
             (

@@ -6,6 +6,8 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from grovello.business_truth import BusinessObjectStatus, BusinessObjectType, BusinessTruthSource
 
+type PublicBusinessTruthSource = Literal["owner_edit", "import", "seed"]
+
 
 class ApiModel(BaseModel):
     model_config = ConfigDict(
@@ -405,6 +407,92 @@ class ImportWorkflowMutationSummary(ApiModel):
     idempotent_replay: bool
 
 
+class KnowledgeIngestionCreate(ApiModel):
+    source_object_id: UUID
+    source_version_id: UUID
+    business_purpose: str = Field(min_length=8, max_length=240)
+    pipeline_profile: str = Field(
+        default="canonical-text-v1",
+        pattern=r"^[a-z0-9]+(?:[-_.][a-z0-9]+)*$",
+        min_length=3,
+        max_length=120,
+    )
+    pipeline_version: str = Field(
+        default="1",
+        pattern=r"^[a-z0-9]+(?:[-_.][a-z0-9]+)*$",
+        min_length=1,
+        max_length=80,
+    )
+    input_versions: dict = Field(default_factory=dict)
+    approval_policy_version: int | None = Field(default=None, ge=1)
+
+
+class KnowledgeSourceSnapshotSummary(ApiModel):
+    id: UUID
+    source_object_id: UUID
+    source_version_id: UUID
+    source_object_type: Literal["knowledge_document", "evidence", "case_study", "asset"]
+    content_sha256: str
+    locale: str
+    source_status: str
+    usage_rights: str
+    sensitivity: str
+    parser_eligible: bool
+    source_locator: dict
+    source_metadata: dict
+    policy_version: int | None
+    created_at: datetime
+
+
+class KnowledgeGenerationSummary(ApiModel):
+    id: UUID
+    status: Literal["pending", "building", "staged", "active", "retired", "failed"]
+    pipeline_profile: str
+    pipeline_version: str
+    parser_profile: str
+    normalizer_version: str
+    classifier_version: str
+    chunker_version: str
+    embedding_config: dict
+    chunk_count: int
+    warnings: list
+    created_at: datetime
+    updated_at: datetime
+
+
+class KnowledgeIngestionSummary(ApiModel):
+    id: UUID
+    workspace_id: UUID
+    source_object_id: UUID
+    source_version_id: UUID
+    source_object_type: Literal["knowledge_document", "evidence", "case_study", "asset"]
+    actor_id: str
+    business_purpose: str
+    pipeline_profile: str
+    pipeline_version: str
+    status: Literal["pending", "running", "ready", "failed", "cancelled"]
+    input_versions: dict
+    approval_policy_version: int | None
+    workflow_id: str | None
+    workflow_run_id: str | None
+    cost_summary: dict
+    failure_code: str | None
+    failure_detail: str | None
+    created_at: datetime
+    updated_at: datetime
+    snapshot: KnowledgeSourceSnapshotSummary
+    generation: KnowledgeGenerationSummary
+
+
+class KnowledgeIngestionMutationSummary(ApiModel):
+    ingestion: KnowledgeIngestionSummary
+    idempotent_replay: bool
+
+
+class KnowledgeIngestionListSummary(ApiModel):
+    items: list[KnowledgeIngestionSummary]
+
+
 class AuditEventSummary(ApiModel):
     id: str
     workspace_id: str
@@ -441,7 +529,7 @@ class BusinessObjectCreate(ApiModel):
     payload: dict
     business_purpose: str = Field(min_length=8, max_length=240)
     change_summary: str = Field(min_length=3, max_length=500)
-    source_type: BusinessTruthSource = "owner_edit"
+    source_type: PublicBusinessTruthSource = "owner_edit"
     source_ref: str | None = Field(default=None, max_length=500)
     input_versions: dict = Field(default_factory=dict)
     citations: list[BusinessTruthCitationInput] = Field(default_factory=list)
@@ -454,7 +542,7 @@ class BusinessObjectVersionCreate(ApiModel):
     payload: dict
     business_purpose: str = Field(min_length=8, max_length=240)
     change_summary: str = Field(min_length=3, max_length=500)
-    source_type: BusinessTruthSource = "owner_edit"
+    source_type: PublicBusinessTruthSource = "owner_edit"
     source_ref: str | None = Field(default=None, max_length=500)
     input_versions: dict = Field(default_factory=dict)
     citations: list[BusinessTruthCitationInput] = Field(default_factory=list)
