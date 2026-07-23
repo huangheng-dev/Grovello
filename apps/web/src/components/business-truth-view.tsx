@@ -12,6 +12,7 @@ import type {
 } from '@grovello/api-client'
 import type { NavigationItem } from '@grovello/product-config'
 import { Icon, StatusBadge } from '@grovello/ui'
+import Link from 'next/link'
 import { useLocale, useTranslations } from 'next-intl'
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import {
@@ -253,7 +254,11 @@ export function BusinessTruthView({ item }: { item: LocatedNavigationItem }) {
   return <div className="page-stack business-truth-page">
     <section className="module-hero">
       <div><span className="eyebrow">{t(`sections.${item.sectionKey}`)} · {t('businessTruth.canonicalData')}</span><h1>{t(`pages.${item.key}.title`)}</h1><p>{t(`pages.${item.key}.description`)}</p></div>
-      <button className="button button--primary" onClick={openCreate} disabled={loading || Boolean(error)}><Icon name="add" size={19} />{t('businessTruth.create')}</button>
+      <div className="business-truth-hero__actions">
+        <Link className="button button--text" href={`/${locale}/brand/business-setup`}><Icon name="checklist" size={18} />{t('businessTruth.businessSetup')}</Link>
+        <Link className="button button--secondary" href={`/${locale}/brand/imports`}><Icon name="upload_file" size={18} />{t('businessTruth.imports')}</Link>
+        <button className="button button--primary" onClick={openCreate} disabled={loading || Boolean(error)}><Icon name="add" size={19} />{t('businessTruth.create')}</button>
+      </div>
     </section>
 
     {notice ? <div className="truth-notice" role="status"><Icon name="check_circle" size={19} /><span>{notice}</span><button className="icon-button" aria-label={t('businessTruth.dismiss')} onClick={() => setNotice(null)}><Icon name="close" size={18} /></button></div> : null}

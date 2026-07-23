@@ -19,6 +19,16 @@ describe('Grovello navigation', () => {
     expect(visibleItems.every((item) => item.status !== 'reserved')).toBe(true)
     expect(navigationItems.some((item) => item.status === 'reserved')).toBe(true)
   })
+  it('keeps setup and imports discoverable without adding primary navigation items', () => {
+    const brand = navigationSections.find((section) => section.key === 'brand')
+    expect(brand?.items).toEqual(expect.arrayContaining([
+      expect.objectContaining({ key: 'businessSetup', placement: 'advanced', status: 'foundation' }),
+      expect.objectContaining({ key: 'imports', placement: 'advanced', status: 'foundation' }),
+    ]))
+    expect(getPrimaryNavigationItems(brand!).some((item) =>
+      ['businessSetup', 'imports'].includes(item.key),
+    )).toBe(false)
+  })
   it('declares delivery and audience metadata for every capability', () => {
     expect(navigationItems.every((item) => item.phase > 0)).toBe(true)
     expect(navigationItems.every((item) => ['operator', 'admin', 'developer'].includes(item.audience))).toBe(true)

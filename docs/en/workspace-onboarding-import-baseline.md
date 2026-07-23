@@ -1,6 +1,6 @@
 # Workspace Onboarding and Structured Import implementation baseline
 
-Status: **approved; P2-D1 through P2-D3 foundations implemented and verified through July 23, 2026**.
+Status: **approved; P2-D1 through P2-D4 foundations implemented and locally verified through July 23, 2026**.
 
 This baseline defines the P2-D delivery boundary for persistent workspace onboarding and structured business-truth import. It implements Phase 2 of the product delivery roadmap without changing the ten product domains or the formal technology baseline.
 
@@ -244,11 +244,13 @@ Implementation evidence: migration `0011` adds tenant-scoped immutable change-se
 
 Add the localized onboarding checklist and import workspace through the thin BFF, including loading, empty, partial, failed, unauthorized, approval, retry, cancellation, compensation, mobile, keyboard, and screen-reader states. Complete a real local end-to-end run against PostgreSQL, Temporal, S3-compatible storage, and the malware scanner.
 
+Implementation evidence: the advanced, non-primary Brand & Market routes `/brand/business-setup` and `/brand/imports` now provide English and Simplified Chinese operator journeys through a server-side BFF without changing the six primary navigation entries. The UI connects persistent onboarding, constrained browser upload, durable status polling, immutable mapping, deterministic validation evidence, change-set review, approval/apply actions, cancellation, compensation, and exact activation gating. Loading, empty, unavailable, unauthorized, conflict, blocked, completed, and compensated states are represented with responsive and accessible controls. A real browser run used PostgreSQL, Temporal, a private versioned MinIO bucket with a least-privilege application account, and ClamAV to take a CSV from upload through clean scanning, mapping, validation, change-set creation, canonical apply, and compensation. The run produced nine audit records and nine transactional outbox events. The fresh-workspace integration acceptance also passed exact activation and compensation. P2-D remains `foundation`, not `operational`, because production identity, the general approval workflow, production runbooks, and non-development deployment evidence remain outside this acceptance.
+
 ## 14. Exit gate and non-claims
 
 P2-D is complete only when a fresh workspace can upload an allowed structured source, map and validate it, review an immutable change set, apply canonical draft facts idempotently, recover from partial failure, produce audit/outbox lineage, satisfy the onboarding gate, and activate an exact business-profile snapshot in both locales.
 
-Until that evidence exists:
+The local exit evidence now exists. The remaining non-claims are:
 
 - onboarding and imports remain `planned` or `foundation`, not `operational`;
 - a parser demo or uploaded file does not prove a governed import;

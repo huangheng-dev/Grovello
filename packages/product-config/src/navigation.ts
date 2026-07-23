@@ -41,6 +41,8 @@ export const navigationSections: NavigationSection[] = [
     { key: 'icp', slug: 'ideal-customers', icon: 'target', status: 'foundation', phase: 2, audience: 'operator', placement: 'primary' },
     { key: 'knowledge', slug: 'knowledge-evidence', icon: 'library_books', status: 'foundation', phase: 2, audience: 'operator', placement: 'primary' },
     { key: 'assets', slug: 'assets', icon: 'perm_media', status: 'foundation', phase: 2, audience: 'operator', placement: 'primary' },
+    { key: 'businessSetup', slug: 'business-setup', icon: 'checklist', status: 'foundation', phase: 2, audience: 'operator', placement: 'advanced' },
+    { key: 'imports', slug: 'imports', icon: 'upload_file', status: 'foundation', phase: 2, audience: 'operator', placement: 'advanced' },
   ]},
   { key: 'content', slug: 'content', icon: 'edit_note', items: [
     { key: 'contentFactory', slug: 'studio', icon: 'auto_awesome', status: 'reserved', phase: 4, audience: 'operator', placement: 'primary' },

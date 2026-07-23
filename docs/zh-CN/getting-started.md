@@ -81,15 +81,15 @@ curl http://localhost:8080/api/v1/business-truth/profile \
 
 写入还必须具备 `business_truth.write` 权限，并提供 `Idempotency-Key`、业务目的与变更摘要。每个已接受版本都会记录操作者与请求血缘，同时写入审计事件和事务 Outbox 事件。种子资料始终明确标注，不代表真实产品、认证、客户或市场声明。
 
-“品牌与市场”的六个导航入口现已读取该资料契约，并支持受治理的对象创建和不可变版本更新。这是共享业务事实的管理纵向切片；导入、持久化工作区入驻、知识切块流水线、完整审批工作流和外部供应商同步仍不在当前可运营声明内。素材库界面在下文单独说明，当前仍是 `foundation` 能力。
+“品牌与市场”的六个核心入口现已读取该资料契约，并支持受治理的对象创建和不可变版本更新。下文说明的“企业配置”和“导入”高级入口，以受治理操作流程扩展了这一管理纵向切片。它们仍是 `foundation` 能力；知识切块流水线、通用审批工作流和外部供应商同步仍不在当前可运营声明内。素材库界面也在下文单独说明，当前仍是 `foundation` 能力。
 
 ## 工作区入驻与导入基础
 
-P2-D1 与 P2-D2 在 `/api/v1/workspace-onboarding` 和 `/api/v1/import-jobs` 提供版本化基础端点。启动企业资料配置以及每项导入 Mutation 都需要窄权限和 `Idempotency-Key`。导入作业只接受 UTF-8 CSV（`text/csv`）或带版本的 Grovello JSON 包（`application/json`），默认 25 MiB 限制由 `GROVELLO_IMPORT_MAX_SOURCE_BYTES` 配置。
+P2-D1 至 P2-D4 在 `/api/v1/workspace-onboarding` 和 `/api/v1/import-jobs` 提供版本化基础端点，并在 `/en/brand/business-setup`、`/en/brand/imports` 及其 `/zh-CN` 对应地址提供双语薄 BFF 操作入口。启动企业资料配置以及每项导入 Mutation 都需要窄权限和 `Idempotency-Key`。导入作业只接受 UTF-8 CSV（`text/csv`）或带版本的 Grovello JSON 包（`application/json`），默认 25 MiB 限制由 `GROVELLO_IMPORT_MAX_SOURCE_BYTES` 配置。
 
 浏览器或客户端通过返回的受约束私有 POST 授权直接上传来源字节。调用 `/api/v1/import-jobs/{job_id}/complete` 后，会启动持久化精确对象核验与恶意文件扫描；干净来源停在 `ready_for_mapping`。授权所有者可在 `/api/v1/import-jobs/{job_id}/mapping` 创建不可变映射，在 `/api/v1/import-jobs/{job_id}/validation` 启动后台解析与校验，并从同一路由读取有界、脱敏的预览和问题报告。CSV 必须显式选择逗号、分号、Tab 或竖线分隔符；Grovello JSON 的 Manifest 必须提供并匹配 `schemaVersion`、`locale`、`objectType` 和 `recordCount`。行、列、标量字节、嵌套和预览限制通过 `.env.example` 中的 `GROVELLO_IMPORT_` 设置配置。
 
-校验会停在 `ready_for_review`；不会执行 apply，不创建 Change Set 或规范业务记录，也不能激活工作区资料。
+校验会停在 `ready_for_review`，直到授权所有者创建不可变 Dry-run Change Set。激活写入要求记录带策略版本的审批决定；持久化 Temporal 工作流把选定记录应用到规范业务事实，并支持取消与精确补偿。工作区资料激活仍是独立的精确快照门禁；缺少有效 Product、Offer、Market 或 ICP 选择时会拒绝激活。本地已核验流程覆盖来源上传、恶意文件扫描、映射、校验、Change Set 审查、应用、补偿、激活、审计事件和事务 Outbox 事件。生产身份、通用审批、运行手册和非开发部署证据接通以前，该能力仍只能标记为 `foundation`。
 
 ## 素材最终化与下载契约
 

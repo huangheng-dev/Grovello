@@ -1,5 +1,7 @@
 import runpy
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import AsyncMock
 from uuid import UUID
 
 import pytest
@@ -116,3 +118,25 @@ def test_import_source_contract_rejects_scope_and_format_confusion() -> None:
         store._validate(_command(content_type="application/json"))
     with pytest.raises(BusinessImportConflictError, match="size limit"):
         store._validate(_command(content_length=1025))
+
+
+@pytest.mark.asyncio
+async def test_import_list_awaits_each_workspace_source(monkeypatch) -> None:
+    jobs = (
+        SimpleNamespace(id=UUID("10000000-0000-4000-8000-000000000001")),
+        SimpleNamespace(id=UUID("10000000-0000-4000-8000-000000000002")),
+    )
+    scalar_result = SimpleNamespace(all=lambda: jobs)
+    session = SimpleNamespace(scalars=AsyncMock(return_value=scalar_result))
+    store = SqlAlchemyBusinessImportStore(
+        session, WORKSPACE_ID, None, max_source_bytes=1024, upload_ttl_seconds=1800
+    )
+    sources = (object(), object())
+    source_lookup = AsyncMock(side_effect=sources)
+    monkeypatch.setattr(store, "_source", source_lookup)
+    monkeypatch.setattr(store, "_record", lambda job, source: (job.id, source))
+
+    records = await store.list(2)
+
+    assert records == ((jobs[0].id, sources[0]), (jobs[1].id, sources[1]))
+    assert [call.args[0] for call in source_lookup.await_args_list] == [jobs[0].id, jobs[1].id]
