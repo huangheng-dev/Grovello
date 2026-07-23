@@ -36,7 +36,8 @@ export type BusinessObjectType =
   | 'case_study'
 
 export type BusinessObjectStatus = 'draft' | 'active' | 'archived'
-export type BusinessTruthSource = 'owner_edit' | 'import' | 'seed'
+export type PublicBusinessTruthSource = 'owner_edit' | 'import' | 'seed'
+export type BusinessTruthSource = PublicBusinessTruthSource | 'pipeline'
 
 export interface BusinessTruthCitation {
   id: string
@@ -93,6 +94,7 @@ export type ImportableBusinessObjectType = Exclude<
   BusinessObjectType,
   'knowledge_chunk' | 'asset'
 >
+export type OwnerManagedBusinessObjectType = Exclude<BusinessObjectType, 'knowledge_chunk'>
 
 export interface WorkspaceOnboarding {
   id: string
@@ -354,6 +356,92 @@ export interface ImportWorkflowMutation extends ImportChangeSetMutation {
   workflowId: string
 }
 
+export type KnowledgeSourceType = 'knowledge_document' | 'evidence' | 'case_study' | 'asset'
+export type KnowledgeIngestionStatus = 'pending' | 'running' | 'ready' | 'failed' | 'cancelled'
+export type KnowledgeGenerationStatus =
+  | 'pending'
+  | 'building'
+  | 'staged'
+  | 'active'
+  | 'retired'
+  | 'failed'
+
+export interface KnowledgeSourceSnapshot {
+  id: string
+  sourceObjectId: string
+  sourceVersionId: string
+  sourceObjectType: KnowledgeSourceType
+  contentSha256: string
+  locale: string
+  sourceStatus: string
+  usageRights: string
+  sensitivity: string
+  parserEligible: boolean
+  sourceLocator: Record<string, unknown>
+  sourceMetadata: Record<string, unknown>
+  policyVersion: number | null
+  createdAt: string
+}
+
+export interface KnowledgeGeneration {
+  id: string
+  status: KnowledgeGenerationStatus
+  pipelineProfile: string
+  pipelineVersion: string
+  parserProfile: string
+  normalizerVersion: string
+  classifierVersion: string
+  chunkerVersion: string
+  embeddingConfig: Record<string, unknown>
+  chunkCount: number
+  warnings: unknown[]
+  createdAt: string
+  updatedAt: string
+}
+
+export interface KnowledgeIngestion {
+  id: string
+  workspaceId: string
+  sourceObjectId: string
+  sourceVersionId: string
+  sourceObjectType: KnowledgeSourceType
+  actorId: string
+  businessPurpose: string
+  pipelineProfile: string
+  pipelineVersion: string
+  status: KnowledgeIngestionStatus
+  inputVersions: Record<string, unknown>
+  approvalPolicyVersion: number | null
+  workflowId: string | null
+  workflowRunId: string | null
+  costSummary: Record<string, unknown>
+  failureCode: string | null
+  failureDetail: string | null
+  createdAt: string
+  updatedAt: string
+  snapshot: KnowledgeSourceSnapshot
+  generation: KnowledgeGeneration
+}
+
+export interface KnowledgeIngestionCreateInput {
+  sourceObjectId: string
+  sourceVersionId: string
+  businessPurpose: string
+  pipelineProfile: string
+  pipelineVersion: string
+  inputVersions: Record<string, unknown>
+  approvalPolicyVersion?: number | null
+}
+
+export interface KnowledgeIngestionMutation {
+  ingestion: KnowledgeIngestion
+  idempotentReplay: boolean
+}
+
+export interface KnowledgeIngestionList {
+  items: KnowledgeIngestion[]
+}
+
 export interface BusinessTruthCitationInput {
   evidenceVersionId: string
   claimText: string
@@ -361,7 +449,7 @@ export interface BusinessTruthCitationInput {
 }
 
 export interface BusinessObjectCreateInput {
-  objectType: BusinessObjectType
+  objectType: OwnerManagedBusinessObjectType
   slug: string
   name: string
   status: BusinessObjectStatus
@@ -369,7 +457,7 @@ export interface BusinessObjectCreateInput {
   payload: Record<string, unknown>
   businessPurpose: string
   changeSummary: string
-  sourceType: BusinessTruthSource
+  sourceType: PublicBusinessTruthSource
   sourceRef?: string | null
   inputVersions: Record<string, unknown>
   citations: BusinessTruthCitationInput[]

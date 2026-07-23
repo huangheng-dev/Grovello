@@ -9,6 +9,7 @@ import type {
   BusinessObjectVersionCreateInput,
   BusinessProfile,
   BusinessTruthMutation,
+  OwnerManagedBusinessObjectType,
 } from '@grovello/api-client'
 import type { NavigationItem } from '@grovello/product-config'
 import { Icon, StatusBadge } from '@grovello/ui'
@@ -53,7 +54,7 @@ interface EditorState {
 }
 
 interface EditorValues {
-  objectType: BusinessObjectType
+  objectType: OwnerManagedBusinessObjectType
   name: string
   slug: string
   status: BusinessObjectStatus
@@ -79,7 +80,9 @@ async function responseEnvelope<T>(response: Response): Promise<ApiEnvelope<T>> 
 }
 
 function initialValues(itemKey: string, locale: string, object?: BusinessObject): EditorValues {
-  const objectType = object?.objectType ?? businessTruthCreateTypesByPage[itemKey]?.[0] ?? 'brand'
+  const objectType = object && object.objectType !== 'knowledge_chunk'
+    ? object.objectType
+    : businessTruthCreateTypesByPage[itemKey]?.[0] ?? 'brand'
   const payload = object?.version.payload ?? {}
   const structured = decodeStructuredPayload(objectType, payload)
   if (object) {
@@ -171,6 +174,7 @@ export function BusinessTruthView({ item }: { item: LocatedNavigationItem }) {
   }
 
   function openVersion(object: BusinessObject) {
+    if (object.objectType === 'knowledge_chunk') return
     setValues(initialValues(item.key, locale, object))
     setFormError(null)
     setEditor({ mode: 'version', object, idempotencyKey: crypto.randomUUID() })
@@ -186,7 +190,7 @@ export function BusinessTruthView({ item }: { item: LocatedNavigationItem }) {
     }))
   }
 
-  function updateObjectType(objectType: BusinessObjectType) {
+  function updateObjectType(objectType: OwnerManagedBusinessObjectType) {
     setValues((current) => ({
       ...current,
       objectType,
@@ -288,7 +292,7 @@ export function BusinessTruthView({ item }: { item: LocatedNavigationItem }) {
     {editor ? <div className="modal-backdrop" role="presentation" onMouseDown={() => !submitting && setEditor(null)}><form className="modal truth-editor" role="dialog" aria-modal="true" aria-labelledby="truth-editor-title" onSubmit={submit} onMouseDown={(event) => event.stopPropagation()}>
       <header><div><span className="eyebrow">{t(`sections.${item.sectionKey}`)}</span><h2 id="truth-editor-title">{t(editor.mode === 'create' ? 'businessTruth.createTitle' : 'businessTruth.versionTitle')}</h2></div><button className="icon-button" type="button" aria-label={t('businessTruth.close')} disabled={submitting} onClick={() => setEditor(null)}><Icon name="close" /></button></header>
       <div className="truth-editor__grid">
-        <label className="field-label"><span>{t('businessTruth.objectType')}</span><select value={values.objectType} disabled={editor.mode === 'version'} onChange={(event) => updateObjectType(event.target.value as BusinessObjectType)}>{objectTypes.map((type) => <option value={type} key={type}>{t(`businessTruth.objectTypes.${type}`)}</option>)}</select></label>
+        <label className="field-label"><span>{t('businessTruth.objectType')}</span><select value={values.objectType} disabled={editor.mode === 'version'} onChange={(event) => updateObjectType(event.target.value as OwnerManagedBusinessObjectType)}>{objectTypes.map((type) => <option value={type} key={type}>{t(`businessTruth.objectTypes.${type}`)}</option>)}</select></label>
         <label className="field-label"><span>{t('businessTruth.status')}</span><select value={values.status} onChange={(event) => setValues({ ...values, status: event.target.value as BusinessObjectStatus })}><option value="draft">{t('businessTruth.statuses.draft')}</option><option value="active">{t('businessTruth.statuses.active')}</option><option value="archived">{t('businessTruth.statuses.archived')}</option></select></label>
         <label className="field-label"><span>{t('businessTruth.name')}</span><input required maxLength={200} value={values.name} onChange={(event) => updateName(event.target.value)} /></label>
         <label className="field-label"><span>{t('businessTruth.slug')}</span><input required minLength={2} maxLength={120} pattern="[a-z0-9]+(?:-[a-z0-9]+)*" disabled={editor.mode === 'version'} value={values.slug} onChange={(event) => setValues({ ...values, slug: event.target.value })} /></label>

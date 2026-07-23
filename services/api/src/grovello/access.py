@@ -123,6 +123,13 @@ OWNER_PERMISSIONS = frozenset(
         "asset.approve",
         "asset.archive",
         "asset.purge",
+        "knowledge.retrieve",
+        "knowledge.ingest",
+        "knowledge.reindex",
+        "knowledge.cancel",
+        "knowledge.retire",
+        "knowledge.sensitive.read",
+        "knowledge.admin",
     }
 )
 
@@ -147,6 +154,7 @@ access_directory = AccessDirectory(
                     "business_truth.import.read",
                     "asset.read",
                     "asset.download",
+                    "knowledge.retrieve",
                 }
             ),
         ),
