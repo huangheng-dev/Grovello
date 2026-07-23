@@ -256,6 +256,25 @@ class FakeOnboardingStore:
         assert self.item is not None
         return self.item
 
+    async def activate(self, command, context):
+        assert self.item is not None
+        self.item = WorkspaceOnboardingRecord(
+            **{
+                **{field: getattr(self.item, field) for field in self.item.__dataclass_fields__},
+                "status": "active",
+                "policy_version": command.policy_version,
+                "activation_version": self.item.activation_version + 1,
+                "activated_by": context.actor_id,
+                "activated_at": datetime.now(UTC),
+                "activation_business_purpose": command.business_purpose,
+                "activation_snapshot": {
+                    "objectVersions": [],
+                    "policyVersion": command.policy_version,
+                },
+            }
+        )
+        return WorkspaceOnboardingMutationResult(self.item, False)
+
 
 @pytest.fixture
 def p2d_client() -> Iterator[
@@ -376,6 +395,43 @@ def test_workspace_onboarding_creation_is_separate_from_activation(p2d_client) -
     assert onboarding["status"] == "draft"
     assert onboarding["activationVersion"] == 0
     assert onboarding["activatedAt"] is None
+
+
+def test_workspace_activation_requires_elevated_permission_and_exact_policy_snapshot(p2d_client) -> None:
+    client, _store, _launcher, _validation_launcher, _onboarding = p2d_client
+    client.post(
+        "/api/v1/workspace-onboarding",
+        headers=headers("northstar-owner", "start-before-activation"),
+        json={
+            "businessPurpose": "Configure governed business truth",
+            "requiredObjectTypes": ["brand", "product", "market", "icp"],
+            "inputVersions": {},
+        },
+    )
+    denied = client.post(
+        "/api/v1/workspace-onboarding/activate",
+        headers=headers("northstar-analyst", "denied-activation"),
+        json={
+            "businessPurpose": "Activate the reviewed business profile",
+            "policyVersion": 3,
+            "reviewedWarningCodes": [],
+        },
+    )
+    accepted = client.post(
+        "/api/v1/workspace-onboarding/activate",
+        headers=headers("northstar-owner", "activate-profile"),
+        json={
+            "businessPurpose": "Activate the reviewed business profile",
+            "policyVersion": 3,
+            "reviewedWarningCodes": [],
+        },
+    )
+    assert denied.status_code == 403
+    assert accepted.status_code == 200
+    onboarding = accepted.json()["data"]["onboarding"]
+    assert onboarding["status"] == "active"
+    assert onboarding["activationVersion"] == 1
+    assert onboarding["activationSnapshot"]["policyVersion"] == 3
 
 
 def test_import_routes_fail_closed_for_cross_tenant_context(p2d_client) -> None:

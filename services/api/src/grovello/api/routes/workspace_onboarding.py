@@ -11,11 +11,13 @@ from grovello.api.dependencies import (
 from grovello.schemas import (
     ApiEnvelope,
     ApiMeta,
+    WorkspaceOnboardingActivation,
     WorkspaceOnboardingCreate,
     WorkspaceOnboardingMutationSummary,
     WorkspaceOnboardingSummary,
 )
 from grovello.workspace_onboarding import (
+    ActivateWorkspaceOnboardingCommand,
     CreateWorkspaceOnboardingCommand,
     OnboardingMutationContext,
     WorkspaceOnboardingConflictError,
@@ -41,6 +43,8 @@ def _summary(item: WorkspaceOnboardingRecord) -> WorkspaceOnboardingSummary:
         activation_version=item.activation_version,
         activated_by=item.activated_by,
         activated_at=item.activated_at,
+        activation_business_purpose=item.activation_business_purpose,
+        activation_snapshot=item.activation_snapshot,
         created_at=item.created_at,
         updated_at=item.updated_at,
     )
@@ -98,5 +102,46 @@ async def get_workspace_onboarding(
         raise HTTPException(status_code=404, detail=str(error)) from error
     return ApiEnvelope(
         data=_summary(item),
+        meta=ApiMeta(request_id=request.state.request_id),
+    )
+
+
+@router.post(
+    "/activate",
+    response_model=ApiEnvelope[WorkspaceOnboardingMutationSummary],
+)
+async def activate_workspace_onboarding(
+    payload: WorkspaceOnboardingActivation,
+    request: Request,
+    access: Annotated[AuthorizedWorkspace, Depends(require_workspace_access)],
+    store: Annotated[WorkspaceOnboardingStore, Depends(get_workspace_onboarding_store)],
+    key: Annotated[str, Depends(require_idempotency_key)],
+) -> ApiEnvelope[WorkspaceOnboardingMutationSummary]:
+    access.require("workspace.onboarding.activate")
+    access.require("policies.manage")
+    try:
+        result = await store.activate(
+            ActivateWorkspaceOnboardingCommand(
+                business_purpose=payload.business_purpose,
+                policy_version=payload.policy_version,
+                reviewed_warning_codes=tuple(payload.reviewed_warning_codes),
+            ),
+            OnboardingMutationContext(
+                actor_type=access.actor.actor_type,
+                actor_id=access.actor.subject_id,
+                session_id=access.actor.session_id,
+                request_id=request.state.request_id,
+                idempotency_key=key,
+            ),
+        )
+    except WorkspaceOnboardingNotFoundError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+    except WorkspaceOnboardingConflictError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+    return ApiEnvelope(
+        data=WorkspaceOnboardingMutationSummary(
+            onboarding=_summary(result.onboarding),
+            idempotent_replay=result.idempotent_replay,
+        ),
         meta=ApiMeta(request_id=request.state.request_id),
     )

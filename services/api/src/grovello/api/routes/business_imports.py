@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from grovello.access import AuthorizedWorkspace
 from grovello.api.dependencies import (
     get_business_import_store,
+    get_import_apply_launcher,
     get_import_source_verification_launcher,
     get_import_validation_launcher,
     require_idempotency_key,
@@ -23,6 +24,7 @@ from grovello.business_imports import (
     ImportValidationLauncher,
     StartImportValidationCommand,
 )
+from grovello.import_change_sets import ImportApplyLauncher
 from grovello.import_validation import FieldMapping
 from grovello.schemas import (
     ApiEnvelope,
@@ -76,6 +78,11 @@ def _summary(item: ImportJobRecord) -> ImportJobSummary:
         selected_mapping_version_id=item.selected_mapping_version_id,
         validation_workflow_id=item.validation_workflow_id,
         parser_version=item.parser_version,
+        selected_change_set_id=item.selected_change_set_id,
+        apply_workflow_id=item.apply_workflow_id,
+        compensation_workflow_id=item.compensation_workflow_id,
+        compensation_policy_version=item.compensation_policy_version,
+        compensation_business_purpose=item.compensation_business_purpose,
         input_versions=item.input_versions,
         result_summary=item.result_summary,
         failure_code=item.failure_code,
@@ -369,6 +376,7 @@ async def cancel_import_job(
     store: Annotated[BusinessImportStore, Depends(get_business_import_store)],
     launcher: Annotated[ImportSourceVerificationLauncher, Depends(get_import_source_verification_launcher)],
     validation_launcher: Annotated[ImportValidationLauncher, Depends(get_import_validation_launcher)],
+    apply_launcher: Annotated[ImportApplyLauncher, Depends(get_import_apply_launcher)],
     key: Annotated[str, Depends(require_idempotency_key)],
 ) -> ApiEnvelope[ImportJobMutationSummary]:
     access.require("business_truth.import.cancel")
@@ -379,6 +387,8 @@ async def cancel_import_job(
             await launcher.cancel(result.job.workflow_id)
         if result.job.validation_workflow_id:
             await validation_launcher.cancel(result.job.validation_workflow_id)
+        if result.job.apply_workflow_id:
+            await apply_launcher.cancel(result.job.apply_workflow_id)
     except (BusinessImportNotFoundError, BusinessImportConflictError) as error:
         _raise(error)
     except Exception as error:
