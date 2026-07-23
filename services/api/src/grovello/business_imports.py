@@ -394,7 +394,10 @@ class SqlAlchemyBusinessImportStore:
                 )
             ).all()
         )
-        return tuple(self._record(job, await self._source(job.id)) for job in jobs)
+        records: list[ImportJobRecord] = []
+        for job in jobs:
+            records.append(self._record(job, await self._source(job.id)))
+        return tuple(records)
 
     async def get(self, job_id: UUID) -> ImportJobRecord:
         item = await self._require(job_id)

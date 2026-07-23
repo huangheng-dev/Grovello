@@ -1,5 +1,7 @@
 import { BusinessTruthView } from '@/components/business-truth-view'
 import { AssetLibraryView } from '@/components/asset-library-view'
+import { BusinessSetupView } from '@/components/business-setup-view'
+import { ImportsView } from '@/components/imports-view'
 import { ModuleView } from '@/components/module-view'
 import { findNavigationItem, isNavigationItemRoutable, navigationItems } from '@grovello/product-config'
 import { setRequestLocale } from 'next-intl/server'
@@ -16,6 +18,8 @@ export default async function CapabilityPage({ params }: { params: Promise<{ loc
   setRequestLocale(locale)
   const item = findNavigationItem(section, module)
   if (!item || !isNavigationItemRoutable(item)) notFound()
+  if (item.key === 'businessSetup') return <BusinessSetupView item={item} />
+  if (item.key === 'imports') return <ImportsView item={item} />
   if (item.key === 'assets') return <AssetLibraryView item={item} />
   if (item.sectionKey === 'brand') return <BusinessTruthView item={item} />
   return <ModuleView item={item} />

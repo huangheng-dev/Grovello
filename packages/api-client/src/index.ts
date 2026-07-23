@@ -230,6 +230,63 @@ export interface ImportJobMutation {
   idempotentReplay: boolean
 }
 
+export interface ImportMappingFieldInput {
+  source: string | null
+  target: string
+  transform: 'identity' | 'trim' | 'lowercase' | 'uppercase' | 'integer' | 'decimal' | 'boolean' | 'json' | 'split'
+  defaultValue?: unknown
+  hasDefault?: boolean
+  separator?: string
+}
+
+export interface ImportMappingCreateInput {
+  sourceFields: string[]
+  delimiter: ',' | ';' | '\t' | '|' | null
+  fields: ImportMappingFieldInput[]
+  businessPurpose: string
+}
+
+export interface ImportMapping {
+  id: string
+  jobId: string
+  version: number
+  schemaFingerprint: string
+  businessPurpose: string | null
+  sourceFields: string[]
+  delimiter: string | null
+  fields: ImportMappingFieldInput[]
+  createdBy: string
+  createdAt: string
+}
+
+export interface ImportMappingMutation {
+  mapping: ImportMapping
+  idempotentReplay: boolean
+}
+
+export interface ImportPreviewRow {
+  sourceRowNumber: number
+  status: 'valid' | 'invalid' | 'duplicate' | 'conflict'
+  normalizedData: Record<string, unknown>
+  targetIdentity: Record<string, unknown>
+}
+
+export interface ImportIssue {
+  sourceRowNumber: number | null
+  code: string
+  severity: 'warning' | 'error' | 'blocking'
+  fieldLocator: Record<string, unknown>
+  message: string
+  redactedSample: string | null
+}
+
+export interface ImportValidationReport {
+  job: ImportJob
+  mapping: ImportMapping | null
+  preview: ImportPreviewRow[]
+  issues: ImportIssue[]
+}
+
 export type ImportChangeSetOperationType = 'create' | 'new_version' | 'skip' | 'conflict'
 export type ImportChangeSetOperationStatus =
   | 'planned'
